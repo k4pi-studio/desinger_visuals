@@ -12,6 +12,7 @@ import {
 } from 'postprocessing'
 import { FILTER_TYPES, NODE_TYPES, NODE_DEFS } from '@shared/nodes'
 import { Vector3 } from 'three'
+import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { GunsEffect } from '../crt/GunsEffect'
 import { createEffect, type EffectHandle } from './effects'
 
@@ -119,5 +120,14 @@ describe('mapowanie parametrów', () => {
     expect(effect.uniforms.get('gain')!.value).toEqual(new Vector3(2, 1, 0))
     expect(effect.uniforms.get('overdrive')!.value).toEqual(new Vector3(1, 0, 0))
     expect(effect.uniforms.get('convergence')!.value).toEqual(new Vector3(0.5, 0, -0.5))
+  })
+
+  it('CRTCircuit: własne przejście, pokrętła trafiają do modelu', () => {
+    const handle = createEffect('CRTCircuit')!
+    expect(handle.pass).toBeInstanceOf(CrtCircuitPass)
+    expect(handle.effect).toBeUndefined()
+    handle.apply(getter({ hv: 0.5, hdef: 0.5, vdef: 0 }), 1 / 60)
+    expect((handle.pass as CrtCircuitPass).model.out.scaleY).toBeLessThanOrEqual(0.005)
+    handle.pass!.dispose()
   })
 })

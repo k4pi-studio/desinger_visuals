@@ -12,6 +12,7 @@ export type NodeType =
   | 'Noise'
   | 'Vignette'
   | 'CRTGuns'
+  | 'CRTCircuit'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -133,6 +134,11 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('red', 'Działo R', 0, 1, 0.005, 0.5),
     num('green', 'Działo G', 0, 1, 0.005, 0.5),
     num('blue', 'Działo B', 0, 1, 0.005, 0.5)
+  ]),
+  CRTCircuit: filter('CRTCircuit', 'CRT Circuit', [
+    num('hv', 'Anoda HV', 0, 1, 0.005, 0.5),
+    num('hdef', 'Odchylanie H', 0, 1, 0.005, 0.5),
+    num('vdef', 'Odchylanie V', 0, 1, 0.005, 0.5)
   ]),
   AudioIn: {
     type: 'AudioIn',

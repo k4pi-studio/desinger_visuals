@@ -103,4 +103,11 @@ describe('node’y CRT', () => {
     for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005, default: 0.5 })
     expect(FILTER_TYPES).toContain('CRTGuns')
   })
+
+  it('CRTCircuit: HV, odchylanie H i V 0–1, 0,5 = sprawne', () => {
+    const params = NODE_DEFS.CRTCircuit.params
+    expect(params.map((p) => p.key)).toEqual(['hv', 'hdef', 'vdef'])
+    for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005, default: 0.5 })
+    expect(FILTER_TYPES).toContain('CRTCircuit')
+  })
 })

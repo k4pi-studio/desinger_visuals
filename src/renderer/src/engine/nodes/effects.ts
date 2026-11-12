@@ -16,6 +16,7 @@ import {
 } from 'postprocessing'
 import { Vector2 } from 'three'
 import type { NodeType } from '@shared/nodes'
+import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { GunsEffect } from '../crt/GunsEffect'
 import { gunUniforms } from '../crt/model'
 
@@ -137,6 +138,19 @@ export function createEffect(type: NodeType): EffectHandle | null {
             gunUniforms(get('green'), g),
             gunUniforms(get('blue'), b)
           )
+        }
+      }
+    }
+    case 'CRTCircuit': {
+      const pass = new CrtCircuitPass()
+      const knobs = { hv: 0.5, hdef: 0.5, vdef: 0.5 }
+      return {
+        pass,
+        apply(get, dt) {
+          knobs.hv = get('hv')
+          knobs.hdef = get('hdef')
+          knobs.vdef = get('vdef')
+          pass.setKnobs(knobs, dt)
         }
       }
     }
