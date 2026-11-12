@@ -5,6 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { NODE_DEFS, VIDEO_IN, VIDEO_OUT } from '@shared/nodes'
 import type { GraphNode } from '@shared/types'
 import { usePanel } from '../store'
+import { CrtNode } from './crt/CrtNode'
 
 export type VzNode = Node<{ node: GraphNode }, 'vz'>
 
@@ -66,7 +67,13 @@ function format(v: unknown): string {
 }
 
 export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Element {
-  const node = data.node
+  if (data.node.type === 'CRTGuns' || data.node.type === 'CRTCircuit') {
+    return <CrtNode node={data.node} selected={selected} />
+  }
+  return <ListNode node={data.node} selected={selected} />
+}
+
+function ListNode({ node, selected }: { node: GraphNode; selected: boolean }): React.JSX.Element {
   const def = NODE_DEFS[node.type]
   const deleteMode = usePanel((s) => s.graphMode === 'delete')
   const border = deleteMode

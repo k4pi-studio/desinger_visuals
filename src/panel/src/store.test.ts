@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultGraph, getChain } from '@shared/graph'
 import type { AppState, ClientMessage, ServerMessage } from '@shared/types'
 
@@ -29,6 +29,7 @@ import {
   setFullscreen,
   setGraphLocal,
   setGraphMode,
+  setCrtSkin,
   setLan,
   setParamValue,
   usePanel
@@ -183,5 +184,31 @@ describe('defaultBinding', () => {
 
   it('wejście, które nie jest parametrem liczbowym', () => {
     expect(defaultBinding(graph(), 'ghost.x')).toEqual({ scale: 1, offset: 0 })
+  })
+})
+
+describe('styl node’ów CRT', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('setCrtSkin zmienia stan i zapisuje wybór', () => {
+    const store = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v)
+    })
+    setCrtSkin('blackpanel')
+    expect(usePanel.getState().crtSkin).toBe('blackpanel')
+    expect(store.get('vz.crtSkin')).toBe('blackpanel')
+  })
+
+  it('błąd localStorage nie blokuje zmiany stylu', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('quota')
+      }
+    })
+    setCrtSkin('blackpanel')
+    expect(usePanel.getState().crtSkin).toBe('blackpanel')
   })
 })

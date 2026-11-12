@@ -10,6 +10,18 @@ import { connection } from './api'
 export type Tab = 'effects' | 'graph'
 /** Tryb edytora grafu: łączenie i dodawanie albo usuwanie kliknięciem. */
 export type GraphMode = 'edit' | 'delete'
+/** Wygląd node'ów CRT w edytorze grafu (preferencja tej przeglądarki). */
+export type CrtSkin = 'hammertone' | 'blackpanel'
+
+const CRT_SKIN_KEY = 'vz.crtSkin'
+
+function loadCrtSkin(): CrtSkin {
+  try {
+    return localStorage.getItem(CRT_SKIN_KEY) === 'blackpanel' ? 'blackpanel' : 'hammertone'
+  } catch {
+    return 'hammertone'
+  }
+}
 
 interface PanelState {
   app: AppState | null
@@ -18,6 +30,7 @@ interface PanelState {
   selected: string | null
   tab: Tab
   graphMode: GraphMode
+  crtSkin: CrtSkin
 }
 
 export const usePanel = create<PanelState>(() => ({
@@ -26,7 +39,8 @@ export const usePanel = create<PanelState>(() => ({
   audio: { bass: 0, mid: 0, high: 0, level: 0, beat: 0 },
   selected: null,
   tab: 'effects',
-  graphMode: 'edit'
+  graphMode: 'edit',
+  crtSkin: loadCrtSkin()
 }))
 
 const patchApp = (fn: (app: AppState) => AppState): void =>
@@ -70,6 +84,15 @@ export function selectVideo(id: string | null): void {
 export function setParamValue(node: string, param: string, value: ParamValue): void {
   patchApp((app) => ({ ...app, graph: setParam(app.graph, node, param, value) }))
   connection.send({ type: 'effects:set', node, param, value })
+}
+
+export function setCrtSkin(crtSkin: CrtSkin): void {
+  usePanel.setState({ crtSkin })
+  try {
+    localStorage.setItem(CRT_SKIN_KEY, crtSkin)
+  } catch {
+    // Prywatne okno albo zablokowane dane strony: wybór działa do odświeżenia.
+  }
 }
 
 export function setBypass(node: string, bypass: boolean): void {
