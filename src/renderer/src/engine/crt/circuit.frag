@@ -67,8 +67,14 @@ void main() {
   vec2 uv = r + 0.5;
 
   vec3 color = vec3(0.0);
-  if (vRolling > 0.5) uv.y = fract(uv.y + vPhase) * (1.0 + V_BLANK) - V_BLANK;
-  if (uv.y >= 0.0 && uv.y <= 1.0 && uv.x >= -H_BLANK && uv.x <= 1.0 + H_BLANK) {
+  // Wiązka pokrywa tylko uv.y ∈ [0,1]; toczenie przesuwa treść wewnątrz tego zakresu
+  // (przy zapadniętym pionie zostaje jedna kreska, a nie powielone linie).
+  bool onScreen = uv.y >= 0.0 && uv.y <= 1.0 && uv.x >= -H_BLANK && uv.x <= 1.0 + H_BLANK;
+  if (onScreen && vRolling > 0.5) {
+    uv.y = fract(uv.y + vPhase) * (1.0 + V_BLANK) - V_BLANK;
+    onScreen = uv.y >= 0.0;
+  }
+  if (onScreen) {
     float ly = uv.y * LINES - 0.5;
     float n0 = floor(ly);
     float f = ly - n0;
