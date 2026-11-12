@@ -1,4 +1,4 @@
-// Node'y filtrów → gotowe efekty z biblioteki `postprocessing`.
+// Node'y filtrów → efekty z biblioteki `postprocessing` (albo własne przejścia).
 // `apply` jest wołane w każdej klatce i tylko ustawia wartości (bez alokacji).
 
 import {
@@ -10,17 +10,23 @@ import {
   GlitchMode,
   HueSaturationEffect,
   NoiseEffect,
+  type Pass,
   PixelationEffect,
   VignetteEffect
 } from 'postprocessing'
 import { Vector2 } from 'three'
 import type { NodeType } from '@shared/nodes'
+import { GunsEffect } from '../crt/GunsEffect'
+import { gunUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
 
+/** Zwykły efekt (`effect`) albo własne przejście (`pass`), np. z buforem poprzedniej klatki. */
 export interface EffectHandle {
-  effect: Effect
-  apply(get: ParamGetter): void
+  effect?: Effect
+  pass?: Pass
+  /** `dt` – czas klatki w sekundach, dla efektów zależnych od czasu. */
+  apply(get: ParamGetter, dt: number): void
 }
 
 const DEG = Math.PI / 180
@@ -115,6 +121,22 @@ export function createEffect(type: NodeType): EffectHandle | null {
         apply(get) {
           effect.offset = get('offset')
           effect.darkness = get('darkness')
+        }
+      }
+    }
+    case 'CRTGuns': {
+      const effect = new GunsEffect()
+      const r = gunUniforms(0.5)
+      const g = gunUniforms(0.5)
+      const b = gunUniforms(0.5)
+      return {
+        effect,
+        apply(get) {
+          effect.setGuns(
+            gunUniforms(get('red'), r),
+            gunUniforms(get('green'), g),
+            gunUniforms(get('blue'), b)
+          )
         }
       }
     }

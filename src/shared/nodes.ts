@@ -11,6 +11,7 @@ export type NodeType =
   | 'Glitch'
   | 'Noise'
   | 'Vignette'
+  | 'CRTGuns'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -127,6 +128,11 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   Vignette: filter('Vignette', 'Winieta', [
     num('offset', 'Rozmiar', 0, 1, 0.01, 0.35),
     num('darkness', 'Ciemność', 0, 1, 0.01, 0.6)
+  ]),
+  CRTGuns: filter('CRTGuns', 'CRT Guns', [
+    num('red', 'Działo R', 0, 1, 0.005, 0.5),
+    num('green', 'Działo G', 0, 1, 0.005, 0.5),
+    num('blue', 'Działo B', 0, 1, 0.005, 0.5)
   ]),
   AudioIn: {
     type: 'AudioIn',
