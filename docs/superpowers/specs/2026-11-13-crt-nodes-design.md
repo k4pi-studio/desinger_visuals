@@ -33,6 +33,15 @@ Dla kanału `c ∈ {R,G,B}` z napięciem `V_c`:
 
 Bez Circuit node Guns działa samodzielnie jako efekt koloru i zbieżności.
 
+### Tor sygnału (dodane 2026-11-13, po pierwszych testach)
+
+Drugi rząd pokręteł w CRT Guns, zakres 0–1, **domyślnie 0 = czysty sygnał**. Wartości liczy `GunsSignal` w `model.ts`.
+
+- **Echo** (`echo`): odbicia sygnału w kablu. Dwie kopie obrazu przesunięte w prawo, siła `0,6·echo` i połowa tego dla drugiej, z normalizacją jasności.
+- **Delay** (`delay`): opóźnienie odbicia, od 0,5% do 8% szerokości ekranu.
+- **Spread** (`spread`): różne drogi R, G i B. Opóźnienie R ×(1+0,6·s), B ×(1−0,6·s), do tego rozsunięcie zbieżności 0,4%·s.
+- **Hum** (`hum`): przydźwięk 50 Hz. Linie falują w poziomie (do 1% szerokości), a ciemny pas (do 35%) przewija się w pionie z prędkością 0,3 ekranu/s.
+
 ## Model: CRT Circuit (kineskop)
 
 Współrzędne ekranu `q = uv − 0,5`. Dla każdego piksela wyjścia liczymy, gdzie trafia wiązka, i jaki punkt sygnału wtedy rysuje.
