@@ -3,10 +3,10 @@
 
 import { Handle, Position } from '@xyflow/react'
 import { NODE_DEFS, VIDEO_IN, VIDEO_OUT, type NumberParamDef } from '@shared/nodes'
-import type { GraphNode } from '@shared/types'
+import type { GraphEdge, GraphNode } from '@shared/types'
 import { setBypass, usePanel } from '../../store'
 import { Knob } from './Knob'
-import { isCrtType, knobAngle, liveValue, type CrtType } from './knobMath'
+import { isCrtType, knobAngle, liveValue, modRange, type CrtType } from './knobMath'
 import './crt.css'
 
 const LABELS: Record<string, { short: string; led?: string }> = {
@@ -34,21 +34,21 @@ const TITLES = {
 interface KnobState {
   def: NumberParamDef
   value: number
-  driven: boolean
+  /** Kabel wpięty w pokrętło (modulacja). */
+  edge?: GraphEdge
 }
 
 function useKnobs(node: GraphNode): KnobState[] {
   const graph = usePanel((s) => s.app?.graph)
-  const cabled = graph?.edges.some((e) => e.to.startsWith(`${node.id}.`)) ?? false
-  // Mierniki audio przychodzą co ~100 ms: subskrybujemy je tylko, gdy coś jest podpięte.
+  const params = NODE_DEFS[node.type].params.filter((p) => p.kind === 'number')
+  const edges = params.map((p) => graph?.edges.find((e) => e.to === `${node.id}.${p.key}`))
+  // Mierniki audio przychodzą co ~100 ms: subskrybujemy je tylko, gdy pokrętło ma kabel.
+  const cabled = edges.some(Boolean)
   const audio = usePanel((s) => (cabled ? s.audio : null))
-  return NODE_DEFS[node.type].params.flatMap((p) => {
-    if (p.kind !== 'number') return []
+  return params.map((p, i) => {
     const live = graph && audio ? liveValue(graph, node.id, p.key, audio) : null
     const set = node.params[p.key]
-    return [
-      { def: p, value: live ?? (typeof set === 'number' ? set : p.default), driven: live !== null }
-    ]
+    return { def: p, value: live ?? (typeof set === 'number' ? set : p.default), edge: edges[i] }
   })
 }
 
@@ -63,12 +63,18 @@ function Column({
 }): React.JSX.Element {
   const label = LABELS[k.def.key] ?? { short: k.def.label }
   const led = label.led ?? '#ffb02e'
+  const mod = k.edge && modRange(k.edge, k.def)
   return (
     <div className="crt-col">
-      <Knob nodeId={nodeId} def={k.def} value={k.value} driven={k.driven} />
+      <Knob nodeId={nodeId} def={k.def} value={k.value} edge={k.edge} />
       <div className="crt-klab">{label.short}</div>
+      {mod && (
+        <div className="crt-modread">
+          {mod.lo.toFixed(2)}→{mod.hi.toFixed(2)}
+        </div>
+      )}
       <div
-        className={`crt-pin ${ledAlways || k.driven ? 'crt-on' : ''}`}
+        className={`crt-pin ${ledAlways || k.edge ? 'crt-on' : ''}`}
         style={{ '--led': led } as React.CSSProperties}
       />
     </div>
@@ -85,7 +91,7 @@ function Jacks({ knobs }: { knobs: KnobState[] }): React.JSX.Element {
             type="target"
             position={Position.Top}
             id={k.def.key}
-            className={`crt-jack ${k.driven ? 'crt-on' : ''}`}
+            className={`crt-jack ${k.edge ? 'crt-on' : ''}`}
           />
         </div>
       ))}

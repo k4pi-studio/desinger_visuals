@@ -2,7 +2,7 @@
 
 import { applyEdge, splitPort } from '@shared/graph'
 import { clamp, findNumberParam, type NumberParamDef } from '@shared/nodes'
-import type { AudioLevels, Graph } from '@shared/types'
+import type { AudioLevels, Graph, GraphEdge } from '@shared/types'
 
 /** Node'y rysowane jako analogowe panele CRT (po 3 pokrętła). */
 export const CRT_TYPES = ['CRTGuns', 'CRTCircuit', 'CRTEcho', 'CRTSignal'] as const
@@ -54,4 +54,43 @@ export function liveValue(
   }
   const v = node.params[key]
   return typeof v === 'number' ? v : def.default
+}
+
+const tidy = (v: number): number => Number(v.toFixed(6))
+
+export interface ModRange {
+  /** Wartość przy ciszy (offset kabla). */
+  base: number
+  /** O ile przekręca pełny sygnał (skala kabla, może być ujemna). */
+  depth: number
+  /** Zakres, który kabel faktycznie osiąga, przycięty do parametru. */
+  lo: number
+  hi: number
+}
+
+/** Kabel → baza i głębokość modulacji pokrętła (wartość = sygnał × skala + offset). */
+export function modRange(edge: GraphEdge, def: NumberParamDef): ModRange {
+  const base = edge.offset ?? 0
+  const depth = edge.scale ?? 1
+  const a = clamp(base, def.min, def.max)
+  const b = clamp(base + depth, def.min, def.max)
+  return { base, depth, lo: tidy(Math.min(a, b)), hi: tidy(Math.max(a, b)) }
+}
+
+/** Łuk modulacji w kątach pokrętła (0 = góra, zgodnie z ruchem wskazówek). */
+export function arcSpan(
+  base: number,
+  depth: number,
+  def: NumberParamDef
+): { start: number; sweep: number } {
+  const a = knobAngle(base, def.min, def.max)
+  const b = knobAngle(base + depth, def.min, def.max)
+  return { start: Math.min(a, b), sweep: Math.abs(b - a) }
+}
+
+/** Nowa głębokość po przeciągnięciu pierścienia o `dy` px (w górę = więcej). */
+export function dragDepth(start: number, dy: number, fine: boolean, def: NumberParamDef): number {
+  const span = def.max - def.min
+  const v = start - (dy / DRAG_RANGE_PX) * span * (fine ? 0.1 : 1)
+  return clamp(tidy(Math.round(v / def.step) * def.step), -span, span)
 }

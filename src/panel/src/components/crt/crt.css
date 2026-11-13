@@ -33,9 +33,6 @@
   cursor: ns-resize;
   touch-action: none;
 }
-.crt-knob.crt-driven {
-  cursor: default;
-}
 .crt-knob-scale {
   position: absolute;
   inset: -8px;
@@ -345,4 +342,39 @@
   letter-spacing: 1.5px;
   text-align: center;
   color: #3b3527;
+}
+
+/* Modulacja: cyjanowy łuk zakresu kabla i pierścień do ustawiania głębokości. */
+.crt-knob-arc {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.7));
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%);
+  mask: radial-gradient(circle, transparent 60%, #000 62%);
+}
+.crt-knob-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  cursor: ns-resize;
+}
+.crt-knob-ring:hover {
+  box-shadow: inset 0 0 0 2px rgba(34, 211, 238, 0.45);
+}
+.crt-knob.crt-driven {
+  cursor: ns-resize;
+}
+.crt-modread {
+  margin-top: 2px;
+  font:
+    600 8px/1 ui-monospace,
+    monospace;
+  letter-spacing: 0.3px;
+  text-align: center;
+  color: #0e7490;
+}
+.crt-blackpanel .crt-modread {
+  color: #22d3ee;
 }

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { NODE_DEFS, type NumberParamDef } from '@shared/nodes'
 import type { AudioLevels, Graph } from '@shared/types'
-import { CRT_TYPES, dragValue, isCrtType, knobAngle, liveValue } from './knobMath'
+import {
+  CRT_TYPES,
+  arcSpan,
+  dragDepth,
+  dragValue,
+  isCrtType,
+  knobAngle,
+  liveValue,
+  modRange
+} from './knobMath'
 
 const def = NODE_DEFS.CRTCircuit.params[0] as NumberParamDef
 const audio: AudioLevels = { bass: 0.3, mid: 0, high: 0, level: 0, beat: 0 }
@@ -58,5 +67,32 @@ describe('isCrtType', () => {
       expect(NODE_DEFS[t].params).toHaveLength(3)
     }
     expect(isCrtType('Bloom')).toBe(false)
+  })
+})
+
+describe('modulacja na pokrętle', () => {
+  it('modRange: baza = offset, głębokość = skala, zakres przycięty do parametru', () => {
+    expect(modRange({ from: 'a1.bass', to: 'c1.hv', scale: 0.35, offset: 0.4 }, def)).toEqual({
+      base: 0.4,
+      depth: 0.35,
+      lo: 0.4,
+      hi: 0.75
+    })
+    const neg = modRange({ from: 'a1.bass', to: 'c1.hv', scale: -0.8, offset: 0.5 }, def)
+    expect(neg.lo).toBe(0)
+    expect(neg.hi).toBe(0.5)
+    expect(modRange({ from: 'a1.bass', to: 'c1.hv' }, def)).toMatchObject({ base: 0, depth: 1 })
+  })
+
+  it('arcSpan: łuk od mniejszego do większego kąta', () => {
+    expect(arcSpan(0.5, 0.25, def)).toEqual({ start: 0, sweep: 67.5 })
+    expect(arcSpan(0.5, -0.5, def)).toEqual({ start: -135, sweep: 135 })
+  })
+
+  it('dragDepth: 200 px = cały zakres, przycięte do ±zakresu i zaokrąglone do kroku', () => {
+    expect(dragDepth(0, -100, false, def)).toBe(0.5)
+    expect(dragDepth(0.5, 1000, false, def)).toBe(-1)
+    expect(dragDepth(0.9, -1000, false, def)).toBe(1)
+    expect(dragDepth(0.2, -13, true, def)).toBeCloseTo(0.205)
   })
 })
