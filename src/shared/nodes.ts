@@ -15,6 +15,7 @@ export type NodeType =
   | 'CRTCircuit'
   | 'CRTEcho'
   | 'CRTSignal'
+  | 'CRTTube'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -151,6 +152,11 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('hv', 'Anoda HV', 0, 1, 0.005, 0.5),
     num('hdef', 'Odchylanie H', 0, 1, 0.005, 0.5),
     num('vdef', 'Odchylanie V', 0, 1, 0.005, 0.5)
+  ]),
+  CRTTube: filter('CRTTube', 'CRT Tube', [
+    num('glow', 'Halacja (poświata szkła)', 0, 1, 0.005, 0.3),
+    num('contrast', 'Krzywa kineskopu', 0, 1, 0.005, 0.5),
+    num('color', 'Nasycenie luminoforów', 0, 1, 0.005, 0.5)
   ]),
   AudioIn: {
     type: 'AudioIn',

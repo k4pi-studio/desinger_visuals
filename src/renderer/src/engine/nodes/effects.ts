@@ -20,7 +20,8 @@ import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
 import { SignalEffect } from '../crt/SignalEffect'
-import { SignalModel, echoUniforms, gunUniforms } from '../crt/model'
+import { CrtTubePass } from '../crt/CrtTubePass'
+import { SignalModel, echoUniforms, gunUniforms, tubeUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
 
@@ -181,6 +182,20 @@ export function createEffect(type: NodeType): EffectHandle | null {
           knobs.hdef = get('hdef')
           knobs.vdef = get('vdef')
           pass.setKnobs(knobs, dt)
+        }
+      }
+    }
+    case 'CRTTube': {
+      const pass = new CrtTubePass()
+      const knobs = { glow: 0.3, contrast: 0.5, color: 0.5 }
+      const out = tubeUniforms(knobs)
+      return {
+        pass,
+        apply(get) {
+          knobs.glow = get('glow')
+          knobs.contrast = get('contrast')
+          knobs.color = get('color')
+          pass.setTube(tubeUniforms(knobs, out))
         }
       }
     }

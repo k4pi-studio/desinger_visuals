@@ -225,3 +225,35 @@ export class SignalModel {
     return o
   }
 }
+
+export interface TubeKnobs {
+  glow: number
+  contrast: number
+  color: number
+}
+
+export interface TubeUniforms {
+  /** Siła halacji (światło rozproszone w szkle bańki). */
+  glowGain: number
+  /** Wykładnik krzywej kineskopu w świetle liniowym (>1 = głębsza czerń). */
+  gamma: number
+  /** Nasycenie luminoforów (0 = czarno-biały, 1 = jak wejście). */
+  saturation: number
+}
+
+const GLOW_MAX = 0.8
+const GAMMA_MIN = 0.8
+const GAMMA_MAX = 1.6
+
+/** CRT Tube: szkło i luminofory – halacja, krzywa kineskopu, nasycenie. */
+export function tubeUniforms(
+  k: TubeKnobs,
+  out: TubeUniforms = { glowGain: 0, gamma: 1, saturation: 1 }
+): TubeUniforms {
+  const c = unit(k.color)
+  out.glowGain = GLOW_MAX * unit(k.glow)
+  out.gamma = lerp(GAMMA_MIN, GAMMA_MAX, unit(k.contrast))
+  // 0→0 (czarno-biały), 0,5→1,25, 1→2: ciągle, w dolnej połowie szybciej do szarości.
+  out.saturation = c <= 0.5 ? 2.5 * c : 1.25 + 1.5 * (c - 0.5)
+  return out
+}

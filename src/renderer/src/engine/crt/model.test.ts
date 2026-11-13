@@ -4,9 +4,11 @@ import {
   SignalModel,
   echoUniforms,
   gunUniforms,
+  tubeUniforms,
   type CircuitKnobs,
   type EchoKnobs,
-  type SignalKnobs
+  type SignalKnobs,
+  type TubeKnobs
 } from './model'
 
 const NOMINAL: CircuitKnobs = { hv: 0.5, hdef: 0.5, vdef: 0.5 }
@@ -186,5 +188,35 @@ describe('SignalModel (CRT Signal: przydźwięk, jitter, chroma)', () => {
     const m = new SignalModel()
     expect(m.step({ hum: -1, jitter: 7, chroma: -4 }, 1 / 60)).toBe(m.out)
     for (const v of Object.values(m.out)) expect(Number.isFinite(v)).toBe(true)
+  })
+})
+
+describe('tubeUniforms (CRT Tube: halacja, krzywa kineskopu, nasycenie)', () => {
+  const DEF: TubeKnobs = { glow: 0.3, contrast: 0.5, color: 0.5 }
+
+  it('Glow 0 = brak poświaty, Glow 1 = pełna', () => {
+    expect(tubeUniforms({ ...DEF, glow: 0 }).glowGain).toBe(0)
+    expect(tubeUniforms({ ...DEF, glow: 1 }).glowGain).toBeCloseTo(0.8)
+  })
+
+  it('Contrast: 0 spłaszcza (γ<1), 0,5 lekko pogłębia czerń, 1 mocno', () => {
+    expect(tubeUniforms({ ...DEF, contrast: 0 }).gamma).toBeCloseTo(0.8)
+    expect(tubeUniforms(DEF).gamma).toBeCloseTo(1.2)
+    expect(tubeUniforms({ ...DEF, contrast: 1 }).gamma).toBeCloseTo(1.6)
+  })
+
+  it('Color: 0 = czarno-biały, 0,5 = żywiej niż wejście, 1 = mocno nasycony', () => {
+    expect(tubeUniforms({ ...DEF, color: 0 }).saturation).toBe(0)
+    expect(tubeUniforms(DEF).saturation).toBeCloseTo(1.25)
+    expect(tubeUniforms({ ...DEF, color: 1 }).saturation).toBeCloseTo(2)
+    // ciągłość w 0,5
+    expect(tubeUniforms({ ...DEF, color: 0.499 }).saturation).toBeCloseTo(1.25, 2)
+  })
+
+  it('wartości spoza 0–1 są obcinane, a podany obiekt jest wypełniany (bez alokacji)', () => {
+    const out = tubeUniforms(DEF)
+    const o = tubeUniforms({ glow: 9, contrast: -2, color: 7 }, out)
+    expect(o).toBe(out)
+    expect(o).toEqual({ glowGain: 0.8, gamma: 0.8, saturation: 2 })
   })
 })

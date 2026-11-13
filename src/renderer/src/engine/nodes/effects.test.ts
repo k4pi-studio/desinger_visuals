@@ -16,6 +16,7 @@ import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
 import { SignalEffect } from '../crt/SignalEffect'
+import { CrtTubePass } from '../crt/CrtTubePass'
 import { createEffect, type EffectHandle } from './effects'
 
 /** Getter jak w silniku: wartości z mapy, reszta z domyślnych. */
@@ -145,6 +146,17 @@ describe('mapowanie parametrów', () => {
     expect(handle.effect).toBeUndefined()
     handle.apply(getter({ hv: 0.5, hdef: 0.5, vdef: 0 }), 1 / 60)
     expect((handle.pass as CrtCircuitPass).model.out.scaleY).toBeLessThanOrEqual(0.005)
+    handle.pass!.dispose()
+  })
+
+  it('CRTTube: własne przejście, pokrętła → uniformy', () => {
+    const handle = createEffect('CRTTube')!
+    expect(handle.pass).toBeInstanceOf(CrtTubePass)
+    handle.apply(getter({ glow: 1, contrast: 1, color: 0 }), 1 / 60)
+    const u = (handle.pass as CrtTubePass).uniforms
+    expect(u.glowGain.value).toBeCloseTo(0.8)
+    expect(u.gamma.value).toBeCloseTo(1.6)
+    expect(u.saturation.value).toBe(0)
     handle.pass!.dispose()
   })
 })

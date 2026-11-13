@@ -120,4 +120,15 @@ describe('node’y CRT', () => {
     for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005, default: 0.5 })
     expect(FILTER_TYPES).toContain('CRTCircuit')
   })
+
+  it('CRTTube: Glow 0,3, Contrast i Color 0,5', () => {
+    const params = NODE_DEFS.CRTTube.params
+    expect(params.map((p) => [p.key, p.default])).toEqual([
+      ['glow', 0.3],
+      ['contrast', 0.5],
+      ['color', 0.5]
+    ])
+    for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005 })
+    expect(FILTER_TYPES).toContain('CRTTube')
+  })
 })
