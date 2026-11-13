@@ -18,7 +18,7 @@ import { Vector2 } from 'three'
 import type { NodeType } from '@shared/nodes'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { GunsEffect } from '../crt/GunsEffect'
-import { gunUniforms } from '../crt/model'
+import { GunsSignal, gunUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
 
@@ -130,14 +130,21 @@ export function createEffect(type: NodeType): EffectHandle | null {
       const r = gunUniforms(0.5)
       const g = gunUniforms(0.5)
       const b = gunUniforms(0.5)
+      const signal = new GunsSignal()
+      const knobs = { echo: 0, delay: 0, spread: 0, hum: 0 }
       return {
         effect,
-        apply(get) {
+        apply(get, dt) {
           effect.setGuns(
             gunUniforms(get('red'), r),
             gunUniforms(get('green'), g),
             gunUniforms(get('blue'), b)
           )
+          knobs.echo = get('echo')
+          knobs.delay = get('delay')
+          knobs.spread = get('spread')
+          knobs.hum = get('hum')
+          effect.setSignal(signal.step(knobs, dt))
         }
       }
     }

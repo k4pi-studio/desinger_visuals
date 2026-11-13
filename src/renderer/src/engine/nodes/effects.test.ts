@@ -122,6 +122,15 @@ describe('mapowanie parametrów', () => {
     expect(effect.uniforms.get('convergence')!.value).toEqual(new Vector3(0.5, 0, -0.5))
   })
 
+  it('CRTGuns: tor sygnału → uniformy echa i przydźwięku', () => {
+    const { handle, effect } = make('CRTGuns', GunsEffect)
+    const knobs = { red: 0.5, green: 0.5, blue: 0.5, echo: 1, delay: 1, spread: 0, hum: 0 }
+    handle.apply(getter(knobs), 1 / 60)
+    expect(effect.uniforms.get('echoGain')!.value).toBeCloseTo(0.6)
+    expect((effect.uniforms.get('echoDelay')!.value as Vector3).y).toBeCloseTo(0.08)
+    expect(effect.uniforms.get('humAmp')!.value).toBe(0)
+  })
+
   it('CRTCircuit: własne przejście, pokrętła trafiają do modelu', () => {
     const handle = createEffect('CRTCircuit')!
     expect(handle.pass).toBeInstanceOf(CrtCircuitPass)

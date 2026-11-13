@@ -124,3 +124,66 @@ export class CircuitModel {
     return o
   }
 }
+
+export interface SignalKnobs {
+  echo: number
+  delay: number
+  spread: number
+  hum: number
+}
+
+export interface SignalUniforms {
+  /** Siła pierwszego odbicia (drugie ma połowę). */
+  echoGain: number
+  /** Opóźnienie odbicia na kanał, ułamek szerokości ekranu. */
+  delayR: number
+  delayG: number
+  delayB: number
+  /** Dodatkowe rozsunięcie zbieżności przez Spread (R w prawo, B w lewo). */
+  spreadShift: number
+  /** Falowanie linii w poziomie (ułamek szerokości). */
+  humAmp: number
+  /** Głębokość ciemnego pasa przydźwięku, 0…1. */
+  humBar: number
+  /** Faza pasa i fal, [0,1). */
+  humPhase: number
+}
+
+const ECHO_MAX = 0.6
+const DELAY_MIN = 0.005
+const DELAY_MAX = 0.08
+const SPREAD_DELAY = 0.6
+const SPREAD_SHIFT = 0.004
+const HUM_AMP = 0.01
+const HUM_BAR = 0.35
+const HUM_SPEED = 0.3 // przewijanie pasa [ekran/s] – dudnienie 50 Hz z częstotliwością pola
+
+/** Tor sygnału przed działami: odbicia w kablu i przydźwięk sieci. */
+export class GunsSignal {
+  readonly out: SignalUniforms = {
+    echoGain: 0,
+    delayR: DELAY_MIN,
+    delayG: DELAY_MIN,
+    delayB: DELAY_MIN,
+    spreadShift: 0,
+    humAmp: 0,
+    humBar: 0,
+    humPhase: 0
+  }
+
+  step(knobs: SignalKnobs, dt: number): SignalUniforms {
+    const o = this.out
+    const spread = unit(knobs.spread)
+    const hum = unit(knobs.hum)
+    const d = lerp(DELAY_MIN, DELAY_MAX, unit(knobs.delay))
+    o.echoGain = ECHO_MAX * unit(knobs.echo)
+    o.delayR = d * (1 + SPREAD_DELAY * spread)
+    o.delayG = d
+    o.delayB = d * (1 - SPREAD_DELAY * spread)
+    o.spreadShift = SPREAD_SHIFT * spread
+    o.humAmp = HUM_AMP * hum
+    o.humBar = HUM_BAR * hum
+    o.humPhase = frac(o.humPhase + dt * HUM_SPEED)
+    return o
+  }
+}

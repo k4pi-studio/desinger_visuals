@@ -15,8 +15,15 @@ const LABELS: Record<string, { short: string; led?: string }> = {
   blue: { short: 'Blue', led: '#4b8bff' },
   hv: { short: 'HV' },
   hdef: { short: 'H-Def' },
-  vdef: { short: 'V-Def' }
+  vdef: { short: 'V-Def' },
+  echo: { short: 'Echo' },
+  delay: { short: 'Delay' },
+  spread: { short: 'Spread' },
+  hum: { short: 'Hum' }
 }
+
+/** Pokrętła głównego rzędu (jacki na górnej krawędzi); reszta to mały rząd toru sygnału. */
+const MAIN_KNOBS = 3
 
 const TITLES = {
   CRTGuns: { name: 'CRT Guns', panel: 'Guns', sub: 'cathode drive' },
@@ -47,16 +54,27 @@ function useKnobs(node: GraphNode): KnobState[] {
 function Column({
   nodeId,
   k,
-  ledAlways
+  ledAlways,
+  small = false
 }: {
   nodeId: string
   k: KnobState
   ledAlways: boolean
+  /** Mały rząd: jack siedzi bezpośrednio nad pokrętłem, a nie na krawędzi node'a. */
+  small?: boolean
 }): React.JSX.Element {
   const label = LABELS[k.def.key] ?? { short: k.def.label }
   const led = label.led ?? '#ffb02e'
   return (
-    <div className="crt-col">
+    <div className={`crt-col ${small ? 'crt-small' : ''}`}>
+      {small && (
+        <Handle
+          type="target"
+          position={Position.Top}
+          id={k.def.key}
+          className={`crt-jack ${k.driven ? 'crt-on' : ''}`}
+        />
+      )}
       <Knob nodeId={nodeId} def={k.def} value={k.value} driven={k.driven} />
       <div className="crt-klab">{label.short}</div>
       <div
@@ -156,9 +174,18 @@ export function CrtNode({
       />
     </>
   )
-  const columns = knobs.map((k) => (
+  const main = knobs.slice(0, MAIN_KNOBS)
+  const columns = main.map((k) => (
     <Column key={k.def.key} nodeId={node.id} k={k} ledAlways={guns} />
   ))
+  const extra = knobs.slice(MAIN_KNOBS)
+  const signalRow = extra.length > 0 && (
+    <div className="crt-row2">
+      {extra.map((k) => (
+        <Column key={k.def.key} nodeId={node.id} k={k} ledAlways={false} small />
+      ))}
+    </div>
+  )
 
   return (
     <div
@@ -169,10 +196,11 @@ export function CrtNode({
     >
       <Handle type="target" position={Position.Left} id={VIDEO_IN} className="crt-video" />
       <Handle type="source" position={Position.Right} id={VIDEO_OUT} className="crt-video" />
-      <Jacks knobs={knobs} />
+      <Jacks knobs={main} />
       {skin === 'hammertone' ? (
         <div className="crt-body">
           <div className="crt-plate">{columns}</div>
+          {signalRow && <div className="crt-plate crt-plate2">{signalRow}</div>}
           <div className="crt-foot-row">
             <div>
               <div className="crt-name">{title.name}</div>
@@ -191,6 +219,7 @@ export function CrtNode({
             <div className="crt-name">{title.panel}</div>
             {!guns && <Meter value={knobs.find((k) => k.def.key === 'hv')?.value ?? 0.5} />}
             <div className="crt-row">{columns}</div>
+            {signalRow}
             <div className="crt-foot-row">{footswitch}</div>
           </div>
         </div>

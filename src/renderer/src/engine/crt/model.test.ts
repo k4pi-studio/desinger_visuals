@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CircuitModel, gunUniforms, type CircuitKnobs } from './model'
+import { CircuitModel, GunsSignal, gunUniforms, type CircuitKnobs, type SignalKnobs } from './model'
 
 const NOMINAL: CircuitKnobs = { hv: 0.5, hdef: 0.5, vdef: 0.5 }
 const zero = (): number => 0
@@ -86,5 +86,61 @@ describe('CircuitModel', () => {
   it('step zwraca ten sam obiekt (bez alokacji)', () => {
     const model = new CircuitModel()
     expect(model.step(NOMINAL, 1 / 60, zero)).toBe(model.out)
+  })
+})
+
+describe('GunsSignal (tor sygnału: echo, opóźnienie, rozjazd, przydźwięk)', () => {
+  const CLEAN: SignalKnobs = { echo: 0, delay: 0, spread: 0, hum: 0 }
+  const step = (k: SignalKnobs, steps = 1, dt = 1 / 60): GunsSignal => {
+    const s = new GunsSignal()
+    for (let i = 0; i < steps; i++) s.step(k, dt)
+    return s
+  }
+
+  it('wszystko na 0 = czysty sygnał', () => {
+    const o = step(CLEAN, 10).out
+    expect(o.echoGain).toBe(0)
+    expect(o.humAmp).toBe(0)
+    expect(o.humBar).toBe(0)
+    expect(o.spreadShift).toBe(0)
+    expect(o.delayR).toBe(o.delayG)
+    expect(o.delayB).toBe(o.delayG)
+  })
+
+  it('Echo ustawia siłę odbicia, Delay jego odległość', () => {
+    expect(step({ ...CLEAN, echo: 1 }).out.echoGain).toBeCloseTo(0.6)
+    expect(step({ ...CLEAN, delay: 0 }).out.delayG).toBeCloseTo(0.005)
+    expect(step({ ...CLEAN, delay: 1 }).out.delayG).toBeCloseTo(0.08)
+  })
+
+  it('Spread rozsuwa opóźnienia kanałów i zbieżność', () => {
+    const o = step({ ...CLEAN, delay: 0.5, spread: 1 }).out
+    expect(o.delayR).toBeGreaterThan(o.delayG)
+    expect(o.delayG).toBeGreaterThan(o.delayB)
+    expect(o.delayB).toBeGreaterThan(0)
+    expect(o.spreadShift).toBeGreaterThan(0)
+  })
+
+  it('Hum: falowanie i pas, faza płynie w czasie i zostaje w [0,1)', () => {
+    const s = new GunsSignal()
+    s.step({ ...CLEAN, hum: 1 }, 0.1)
+    const first = s.out.humPhase
+    s.step({ ...CLEAN, hum: 1 }, 0.1)
+    expect(s.out.humAmp).toBeGreaterThan(0)
+    expect(s.out.humBar).toBeGreaterThan(0)
+    expect(s.out.humPhase).not.toBe(first)
+    const long = step({ ...CLEAN, hum: 1 }, 1000, 0.1).out.humPhase
+    expect(long).toBeGreaterThanOrEqual(0)
+    expect(long).toBeLessThan(1)
+  })
+
+  it('wartości spoza 0–1 nie dają NaN ani Infinity', () => {
+    const o = step({ echo: 5, delay: -3, spread: 9, hum: -1 }, 3).out
+    for (const v of Object.values(o)) expect(Number.isFinite(v)).toBe(true)
+  })
+
+  it('step zwraca ten sam obiekt (bez alokacji)', () => {
+    const s = new GunsSignal()
+    expect(s.step(CLEAN, 1 / 60)).toBe(s.out)
   })
 })
