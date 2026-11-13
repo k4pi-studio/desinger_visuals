@@ -13,6 +13,8 @@ export type NodeType =
   | 'Vignette'
   | 'CRTGuns'
   | 'CRTCircuit'
+  | 'CRTEcho'
+  | 'CRTSignal'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -133,11 +135,17 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   CRTGuns: filter('CRTGuns', 'CRT Guns', [
     num('red', 'Działo R', 0, 1, 0.005, 0.5),
     num('green', 'Działo G', 0, 1, 0.005, 0.5),
-    num('blue', 'Działo B', 0, 1, 0.005, 0.5),
+    num('blue', 'Działo B', 0, 1, 0.005, 0.5)
+  ]),
+  CRTEcho: filter('CRTEcho', 'CRT Echo', [
     num('echo', 'Echo (odbicia)', 0, 1, 0.005, 0),
     num('delay', 'Opóźnienie echa', 0, 1, 0.005, 0),
-    num('spread', 'Rozjazd kolorów', 0, 1, 0.005, 0),
-    num('hum', 'Przydźwięk 50 Hz', 0, 1, 0.005, 0)
+    num('spread', 'Rozjazd kolorów', 0, 1, 0.005, 0)
+  ]),
+  CRTSignal: filter('CRTSignal', 'CRT Signal', [
+    num('hum', 'Przydźwięk 50 Hz', 0, 1, 0.005, 0),
+    num('jitter', 'Szarpanie linii', 0, 1, 0.005, 0),
+    num('chroma', 'Rozlewanie koloru', 0, 1, 0.005, 0)
   ]),
   CRTCircuit: filter('CRTCircuit', 'CRT Circuit', [
     num('hv', 'Anoda HV', 0, 1, 0.005, 0.5),

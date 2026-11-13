@@ -98,16 +98,20 @@ describe('funkcje pomocnicze', () => {
 
 describe('node’y CRT', () => {
   it('CRTGuns: trzy działa 0–1, 0,5 = sprawne', () => {
-    const params = NODE_DEFS.CRTGuns.params.slice(0, 3)
+    const params = NODE_DEFS.CRTGuns.params
     expect(params.map((p) => p.key)).toEqual(['red', 'green', 'blue'])
     for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005, default: 0.5 })
     expect(FILTER_TYPES).toContain('CRTGuns')
   })
 
-  it('CRTGuns: tor sygnału 0–1, 0 = czysty', () => {
-    const params = NODE_DEFS.CRTGuns.params.slice(3)
-    expect(params.map((p) => p.key)).toEqual(['echo', 'delay', 'spread', 'hum'])
+  it.each([
+    ['CRTEcho', ['echo', 'delay', 'spread']],
+    ['CRTSignal', ['hum', 'jitter', 'chroma']]
+  ] as const)('%s: trzy pokrętła 0–1, 0 = czysty sygnał', (type, keys) => {
+    const params = NODE_DEFS[type].params
+    expect(params.map((p) => p.key)).toEqual(keys)
     for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005, default: 0 })
+    expect(FILTER_TYPES).toContain(type)
   })
 
   it('CRTCircuit: HV, odchylanie H i V 0–1, 0,5 = sprawne', () => {

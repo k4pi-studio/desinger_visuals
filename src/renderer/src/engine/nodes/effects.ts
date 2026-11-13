@@ -17,8 +17,10 @@ import {
 import { Vector2 } from 'three'
 import type { NodeType } from '@shared/nodes'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
+import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
-import { GunsSignal, gunUniforms } from '../crt/model'
+import { SignalEffect } from '../crt/SignalEffect'
+import { SignalModel, echoUniforms, gunUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
 
@@ -130,21 +132,42 @@ export function createEffect(type: NodeType): EffectHandle | null {
       const r = gunUniforms(0.5)
       const g = gunUniforms(0.5)
       const b = gunUniforms(0.5)
-      const signal = new GunsSignal()
-      const knobs = { echo: 0, delay: 0, spread: 0, hum: 0 }
       return {
         effect,
-        apply(get, dt) {
+        apply(get) {
           effect.setGuns(
             gunUniforms(get('red'), r),
             gunUniforms(get('green'), g),
             gunUniforms(get('blue'), b)
           )
+        }
+      }
+    }
+    case 'CRTEcho': {
+      const effect = new EchoEffect()
+      const knobs = { echo: 0, delay: 0, spread: 0 }
+      const out = echoUniforms(knobs)
+      return {
+        effect,
+        apply(get) {
           knobs.echo = get('echo')
           knobs.delay = get('delay')
           knobs.spread = get('spread')
+          effect.setEcho(echoUniforms(knobs, out))
+        }
+      }
+    }
+    case 'CRTSignal': {
+      const effect = new SignalEffect()
+      const model = new SignalModel()
+      const knobs = { hum: 0, jitter: 0, chroma: 0 }
+      return {
+        effect,
+        apply(get, dt) {
           knobs.hum = get('hum')
-          effect.setSignal(signal.step(knobs, dt))
+          knobs.jitter = get('jitter')
+          knobs.chroma = get('chroma')
+          effect.setSignal(model.step(knobs, dt))
         }
       }
     }

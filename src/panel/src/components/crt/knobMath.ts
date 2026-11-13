@@ -4,6 +4,11 @@ import { applyEdge, splitPort } from '@shared/graph'
 import { clamp, findNumberParam, type NumberParamDef } from '@shared/nodes'
 import type { AudioLevels, Graph } from '@shared/types'
 
+/** Node'y rysowane jako analogowe panele CRT (po 3 pokrętła). */
+export const CRT_TYPES = ['CRTGuns', 'CRTCircuit', 'CRTEcho', 'CRTSignal'] as const
+export type CrtType = (typeof CRT_TYPES)[number]
+export const isCrtType = (t: string): t is CrtType => (CRT_TYPES as readonly string[]).includes(t)
+
 export const KNOB_SWEEP = 270
 /** Tyle pikseli przeciągania w pionie przechodzi cały zakres. */
 const DRAG_RANGE_PX = 200

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { NODE_DEFS, type NumberParamDef } from '@shared/nodes'
 import type { AudioLevels, Graph } from '@shared/types'
-import { dragValue, knobAngle, liveValue } from './knobMath'
+import { CRT_TYPES, dragValue, isCrtType, knobAngle, liveValue } from './knobMath'
 
 const def = NODE_DEFS.CRTCircuit.params[0] as NumberParamDef
 const audio: AudioLevels = { bass: 0.3, mid: 0, high: 0, level: 0, beat: 0 }
@@ -48,5 +48,15 @@ describe('liveValue', () => {
   })
   it('kabel z innego źródła → wartość ustawiona w node', () => {
     expect(liveValue(graph('lfo1.value'), 'c1', 'hv', audio)).toBe(0.7)
+  })
+})
+
+describe('isCrtType', () => {
+  it('4 node’y CRT, każdy z 3 pokrętłami', () => {
+    for (const t of CRT_TYPES) {
+      expect(isCrtType(t)).toBe(true)
+      expect(NODE_DEFS[t].params).toHaveLength(3)
+    }
+    expect(isCrtType('Bloom')).toBe(false)
   })
 })

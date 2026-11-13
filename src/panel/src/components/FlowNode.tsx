@@ -6,6 +6,7 @@ import { NODE_DEFS, VIDEO_IN, VIDEO_OUT } from '@shared/nodes'
 import type { GraphNode } from '@shared/types'
 import { usePanel } from '../store'
 import { CrtNode } from './crt/CrtNode'
+import { isCrtType } from './crt/knobMath'
 
 export type VzNode = Node<{ node: GraphNode }, 'vz'>
 
@@ -67,7 +68,7 @@ function format(v: unknown): string {
 }
 
 export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Element {
-  if (data.node.type === 'CRTGuns' || data.node.type === 'CRTCircuit') {
+  if (isCrtType(data.node.type)) {
     return <CrtNode node={data.node} selected={selected} />
   }
   return <ListNode node={data.node} selected={selected} />

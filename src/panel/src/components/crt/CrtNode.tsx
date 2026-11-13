@@ -6,7 +6,7 @@ import { NODE_DEFS, VIDEO_IN, VIDEO_OUT, type NumberParamDef } from '@shared/nod
 import type { GraphNode } from '@shared/types'
 import { setBypass, usePanel } from '../../store'
 import { Knob } from './Knob'
-import { knobAngle, liveValue } from './knobMath'
+import { isCrtType, knobAngle, liveValue, type CrtType } from './knobMath'
 import './crt.css'
 
 const LABELS: Record<string, { short: string; led?: string }> = {
@@ -19,16 +19,17 @@ const LABELS: Record<string, { short: string; led?: string }> = {
   echo: { short: 'Echo' },
   delay: { short: 'Delay' },
   spread: { short: 'Spread' },
-  hum: { short: 'Hum' }
+  hum: { short: 'Hum' },
+  jitter: { short: 'Jitter' },
+  chroma: { short: 'Chroma' }
 }
-
-/** Pokrętła głównego rzędu (jacki na górnej krawędzi); reszta to mały rząd toru sygnału. */
-const MAIN_KNOBS = 3
 
 const TITLES = {
   CRTGuns: { name: 'CRT Guns', panel: 'Guns', sub: 'cathode drive' },
-  CRTCircuit: { name: 'CRT Circuit', panel: 'Circuit', sub: 'high voltage · yoke' }
-} as const
+  CRTCircuit: { name: 'CRT Circuit', panel: 'Circuit', sub: 'high voltage · yoke' },
+  CRTEcho: { name: 'CRT Echo', panel: 'Echo', sub: 'cable reflections' },
+  CRTSignal: { name: 'CRT Signal', panel: 'Signal', sub: 'hum · timebase · chroma' }
+} as const satisfies Record<CrtType, { name: string; panel: string; sub: string }>
 
 interface KnobState {
   def: NumberParamDef
@@ -54,27 +55,16 @@ function useKnobs(node: GraphNode): KnobState[] {
 function Column({
   nodeId,
   k,
-  ledAlways,
-  small = false
+  ledAlways
 }: {
   nodeId: string
   k: KnobState
   ledAlways: boolean
-  /** Mały rząd: jack siedzi bezpośrednio nad pokrętłem, a nie na krawędzi node'a. */
-  small?: boolean
 }): React.JSX.Element {
   const label = LABELS[k.def.key] ?? { short: k.def.label }
   const led = label.led ?? '#ffb02e'
   return (
-    <div className={`crt-col ${small ? 'crt-small' : ''}`}>
-      {small && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          id={k.def.key}
-          className={`crt-jack ${k.driven ? 'crt-on' : ''}`}
-        />
-      )}
+    <div className="crt-col">
       <Knob nodeId={nodeId} def={k.def} value={k.value} driven={k.driven} />
       <div className="crt-klab">{label.short}</div>
       <div
@@ -154,7 +144,7 @@ export function CrtNode({
   const skin = usePanel((s) => s.crtSkin)
   const deleteMode = usePanel((s) => s.graphMode === 'delete')
   const knobs = useKnobs(node)
-  const type = node.type === 'CRTGuns' ? 'CRTGuns' : 'CRTCircuit'
+  const type = isCrtType(node.type) ? node.type : 'CRTCircuit'
   const title = TITLES[type]
   const guns = type === 'CRTGuns'
   const on = !node.bypass
@@ -174,18 +164,9 @@ export function CrtNode({
       />
     </>
   )
-  const main = knobs.slice(0, MAIN_KNOBS)
-  const columns = main.map((k) => (
+  const columns = knobs.map((k) => (
     <Column key={k.def.key} nodeId={node.id} k={k} ledAlways={guns} />
   ))
-  const extra = knobs.slice(MAIN_KNOBS)
-  const signalRow = extra.length > 0 && (
-    <div className="crt-row2">
-      {extra.map((k) => (
-        <Column key={k.def.key} nodeId={node.id} k={k} ledAlways={false} small />
-      ))}
-    </div>
-  )
 
   return (
     <div
@@ -196,11 +177,10 @@ export function CrtNode({
     >
       <Handle type="target" position={Position.Left} id={VIDEO_IN} className="crt-video" />
       <Handle type="source" position={Position.Right} id={VIDEO_OUT} className="crt-video" />
-      <Jacks knobs={main} />
+      <Jacks knobs={knobs} />
       {skin === 'hammertone' ? (
         <div className="crt-body">
           <div className="crt-plate">{columns}</div>
-          {signalRow && <div className="crt-plate crt-plate2">{signalRow}</div>}
           <div className="crt-foot-row">
             <div>
               <div className="crt-name">{title.name}</div>
@@ -217,9 +197,10 @@ export function CrtNode({
             <span className="crt-screw" style={{ left: 5, bottom: 5 }} />
             <span className="crt-screw" style={{ right: 5, bottom: 5 }} />
             <div className="crt-name">{title.panel}</div>
-            {!guns && <Meter value={knobs.find((k) => k.def.key === 'hv')?.value ?? 0.5} />}
+            {type === 'CRTCircuit' && (
+              <Meter value={knobs.find((k) => k.def.key === 'hv')?.value ?? 0.5} />
+            )}
             <div className="crt-row">{columns}</div>
-            {signalRow}
             <div className="crt-foot-row">{footswitch}</div>
           </div>
         </div>
