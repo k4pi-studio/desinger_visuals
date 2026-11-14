@@ -12,6 +12,7 @@ export type NodeType =
   | 'Noise'
   | 'Vignette'
   | 'Mirror'
+  | 'PosterizeTime'
   | 'CRTGuns'
   | 'CRTCircuit'
   | 'CRTEcho'
@@ -134,6 +135,9 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   Vignette: filter('Vignette', 'Winieta', [
     num('offset', 'Rozmiar', 0, 1, 0.01, 0.35),
     num('darkness', 'Ciemność', 0, 1, 0.01, 0.6)
+  ]),
+  PosterizeTime: filter('PosterizeTime', 'Posterize Time', [
+    num('fps', 'Klatki na sekundę', 1, 30, 1, 12)
   ]),
   Mirror: filter('Mirror', 'Mirror', [num('angle', 'Kąt osi odbicia (°)', 0, 360, 1, 90)]),
   CRTGuns: filter('CRTGuns', 'CRT Guns', [

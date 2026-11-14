@@ -96,6 +96,23 @@ describe('funkcje pomocnicze', () => {
   })
 })
 
+describe('PosterizeTime', () => {
+  it('filtr z liczbą klatek na sekundę 1–30, domyślnie 12', () => {
+    expect(NODE_DEFS.PosterizeTime.params).toEqual([
+      {
+        key: 'fps',
+        label: 'Klatki na sekundę',
+        kind: 'number',
+        min: 1,
+        max: 30,
+        step: 1,
+        default: 12
+      }
+    ])
+    expect(FILTER_TYPES).toContain('PosterizeTime')
+  })
+})
+
 describe('Mirror', () => {
   it('filtr z kątem osi odbicia 0–360°, domyślnie 90° (lewo ↔ prawo)', () => {
     expect(NODE_DEFS.Mirror.params).toEqual([

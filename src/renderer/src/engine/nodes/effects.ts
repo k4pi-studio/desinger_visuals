@@ -23,6 +23,7 @@ import { SignalEffect } from '../crt/SignalEffect'
 import { CrtTubePass } from '../crt/CrtTubePass'
 import { FlickerEffect } from '../crt/FlickerEffect'
 import { MirrorEffect } from './MirrorEffect'
+import { PosterizeTimePass } from './PosterizeTimePass'
 import { FlickerModel, SignalModel, echoUniforms, gunUniforms, tubeUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
@@ -127,6 +128,15 @@ export function createEffect(type: NodeType): EffectHandle | null {
         apply(get) {
           effect.offset = get('offset')
           effect.darkness = get('darkness')
+        }
+      }
+    }
+    case 'PosterizeTime': {
+      const pass = new PosterizeTimePass()
+      return {
+        pass,
+        apply(get, dt) {
+          pass.tick(get('fps'), dt)
         }
       }
     }

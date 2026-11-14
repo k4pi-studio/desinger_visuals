@@ -20,6 +20,7 @@ import { CrtTubePass } from '../crt/CrtTubePass'
 import { FlickerEffect } from '../crt/FlickerEffect'
 import { createEffect, type EffectHandle } from './effects'
 import { MirrorEffect, mirrorNormal } from './MirrorEffect'
+import { FrameClock, PosterizeTimePass } from './PosterizeTimePass'
 
 /** Getter jak w silniku: wartości z mapy, reszta z domyślnych. */
 const getter =
@@ -119,6 +120,17 @@ describe('mapowanie parametrów', () => {
     expect(effect.darkness).toBeCloseTo(0.8)
   })
 
+  it('PosterizeTime: własne przejście, FPS trafia do zegara klatek', () => {
+    const handle = createEffect('PosterizeTime')!
+    expect(handle.pass).toBeInstanceOf(PosterizeTimePass)
+    const pass = handle.pass as PosterizeTimePass
+    handle.apply(getter({ fps: 10 }), 1 / 60)
+    expect(pass.capture).toBe(true) // pierwsza klatka zawsze
+    handle.apply(getter({ fps: 10 }), 1 / 60)
+    expect(pass.capture).toBe(false)
+    pass.dispose()
+  })
+
   it('Mirror: kąt osi → normalna strony, która zostaje', () => {
     const { handle, effect } = make('Mirror', MirrorEffect)
     handle.apply(getter({ angle: 90 }), 1 / 60)
@@ -188,5 +200,36 @@ describe('mapowanie parametrów', () => {
     expect(u.gamma.value).toBeCloseTo(1.6)
     expect(u.saturation.value).toBe(0)
     handle.pass!.dispose()
+  })
+})
+
+describe('FrameClock (Posterize Time)', () => {
+  const count = (fps: number, frames: number, dt: number): number => {
+    const c = new FrameClock()
+    let n = 0
+    for (let i = 0; i < frames; i++) if (c.tick(fps, dt)) n++
+    return n
+  }
+
+  it('przy 60 fps ekranu przepuszcza dokładnie tyle klatek, ile ustawiono', () => {
+    expect(count(12, 600, 1 / 60)).toBe(120)
+    expect(count(1, 600, 1 / 60)).toBe(10)
+    expect(count(30, 600, 1 / 60)).toBe(300)
+  })
+
+  it('FPS wyższe niż ekran = każda klatka', () => {
+    expect(count(30, 100, 1 / 24)).toBe(100)
+  })
+
+  it('po długiej przerwie (np. karta w tle) nie nadrabia klatek seriami', () => {
+    const c = new FrameClock()
+    c.tick(12, 1 / 60)
+    expect(c.tick(12, 5)).toBe(true)
+    expect(c.tick(12, 1 / 60)).toBe(false)
+  })
+
+  it('FPS spoza zakresu jest przycinane do 1–30', () => {
+    expect(count(0, 120, 1 / 60)).toBe(2)
+    expect(count(500, 60, 1 / 60)).toBe(30)
   })
 })
