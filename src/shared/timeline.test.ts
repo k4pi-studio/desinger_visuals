@@ -41,6 +41,7 @@ describe('sanitizeTimeline', () => {
       graph: sanitizeGraph(5),
       duration: 600,
       waitBeat: true,
+      loop: false,
       inPoint: 0,
       outPoint: null
     })
@@ -88,6 +89,7 @@ describe('operacje na kolejce', () => {
       graph: g,
       duration: 16,
       waitBeat: true,
+      loop: false,
       inPoint: 0,
       outPoint: null
     })
@@ -123,6 +125,7 @@ describe('operacje na kolejce', () => {
       waitBeat: false
     })
     expect(updateItem(t, 'nope', { duration: 5 })).toBe(t)
+    expect(updateItem(t, 'i0', { loop: true }).items[0].loop).toBe(true)
   })
 
   it('nextIndex pomija klipy spoza biblioteki, zawija, null gdy żadnego nie ma', () => {

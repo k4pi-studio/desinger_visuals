@@ -22,7 +22,7 @@ import {
 import { AudioInput } from './audio/capture'
 import { compileGraph, SignalBus, type CompiledGraph } from './graph'
 import { createEffect, type EffectHandle } from './nodes/effects'
-import { Sequencer, beatTriggered, pickVideoId } from './timeline'
+import { Sequencer, beatTriggered, itemDuration, pickVideoId, type SequencerItem } from './timeline'
 import { VideoPool, type VideoSlot } from './video/VideoSource'
 
 interface ActiveEffect {
@@ -51,6 +51,8 @@ export class Engine {
   private readonly sequencer = new Sequencer()
   /** Bieżący element kolejki, gdy gra; czytany w pętli bez alokacji. */
   private timelineItem: TimelineItem | null = null
+  /** To, co widzi zegar cięć (czas zależny od pętli i długości pliku); bez alokacji w klatce. */
+  private readonly seqItem: SequencerItem = { id: '', duration: 1, waitBeat: true }
 
   private raf = 0
   private lastFrame = 0
@@ -132,6 +134,10 @@ export class Engine {
       this.pool.clearRange()
       return
     }
+    const clip = state.library.find((v) => v.id === item.videoId)
+    this.seqItem.id = item.id
+    this.seqItem.duration = itemDuration(item, clip?.duration ?? null)
+    this.seqItem.waitBeat = item.waitBeat
     const changed = prev?.id !== item.id
     if (changed || prev.inPoint !== item.inPoint || prev.outPoint !== item.outPoint)
       this.pool.setRange(item.inPoint, item.outPoint, changed)
@@ -206,7 +212,8 @@ export class Engine {
     const levels = this.audio.update(now)
     this.bus.evaluate(levels, dt)
 
-    if (this.sequencer.step(dt, beatTriggered(levels.beat), this.timelineItem))
+    const seq = this.timelineItem ? this.seqItem : null
+    if (this.sequencer.step(dt, beatTriggered(levels.beat), seq, this.pool.ready))
       window.api.timelineNext()
     this.pool.enforceRange()
 

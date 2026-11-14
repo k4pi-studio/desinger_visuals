@@ -33,7 +33,14 @@ function clean(item: TimelineItem): TimelineItem {
   const inPoint = isNum(item.inPoint) ? Math.max(0, item.inPoint) : 0
   const outPoint =
     isNum(item.outPoint) && item.outPoint >= inPoint + L.minSpan - 1e-9 ? item.outPoint : null
-  return { ...item, duration, inPoint, outPoint, waitBeat: item.waitBeat !== false }
+  return {
+    ...item,
+    duration,
+    inPoint,
+    outPoint,
+    waitBeat: item.waitBeat !== false,
+    loop: item.loop === true
+  }
 }
 
 function cleanItem(raw: unknown, position: number): TimelineItem | null {
@@ -44,6 +51,7 @@ function cleanItem(raw: unknown, position: number): TimelineItem | null {
     graph: sanitizeGraph(raw.graph),
     duration: raw.duration as number,
     waitBeat: raw.waitBeat as boolean,
+    loop: raw.loop as boolean,
     inPoint: raw.inPoint as number,
     outPoint: raw.outPoint as number | null
   })
@@ -72,6 +80,7 @@ export function addItem(t: Timeline, videoId: string, graph: Graph, id: string):
     graph,
     duration: L.durationDefault,
     waitBeat: true,
+    loop: false,
     inPoint: 0,
     outPoint: null
   })
@@ -120,4 +129,23 @@ export function nextIndex(t: Timeline, libraryIds: ReadonlySet<string>): number 
     if (libraryIds.has(t.items[j].videoId)) return j
   }
   return null
+}
+
+/**
+ * Czas elementu dla zegara cięć. Z pętlą – ustawiony `duration`; bez pętli –
+ * jedno przejście fragmentu (do `outPoint` albo końca pliku). Gdy końca nie da
+ * się ustalić (nieznana długość pliku), wraca do `duration`.
+ */
+export function itemDuration(
+  item: { duration: number; loop: boolean; inPoint: number; outPoint: number | null },
+  fileDuration: number | null
+): number {
+  if (item.loop) return item.duration
+  const fd =
+    fileDuration !== null && Number.isFinite(fileDuration) && fileDuration > 0 ? fileDuration : null
+  let end = item.outPoint ?? fd
+  if (end === null) return item.duration
+  if (fd !== null && fd < end) end = fd
+  const start = fd !== null && item.inPoint >= fd ? 0 : item.inPoint
+  return Math.max(0.1, end - start)
 }

@@ -91,8 +91,10 @@ export interface TimelineItem {
   graph: Graph
   /** Czas elementu [s], 1–600. */
   duration: number
-  /** Cięcie na najbliższy beat po upływie `duration`. */
+  /** Cięcie na najbliższy beat po upływie czasu elementu. */
   waitBeat: boolean
+  /** true: fragment zapętlony przez `duration`; false: jedno przejście fragmentu. */
+  loop: boolean
   /** Początek fragmentu [s]. */
   inPoint: number
   /** Koniec fragmentu [s]; null = do końca klipu. */
@@ -100,7 +102,7 @@ export interface TimelineItem {
 }
 
 export type TimelinePatch = Partial<
-  Pick<TimelineItem, 'duration' | 'waitBeat' | 'inPoint' | 'outPoint'>
+  Pick<TimelineItem, 'duration' | 'waitBeat' | 'loop' | 'inPoint' | 'outPoint'>
 >
 
 export interface Timeline {

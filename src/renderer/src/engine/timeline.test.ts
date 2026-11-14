@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { emptyTimeline, addItem } from '@shared/timeline'
 import { defaultGraph } from '@shared/graph'
 import type { AppState } from '@shared/types'
-import { Sequencer, beatTriggered, loopTarget, pickVideoId } from './timeline'
+import { Sequencer, beatTriggered, itemDuration, loopTarget, pickVideoId } from './timeline'
 
 const DT = 1 / 60
 
@@ -45,6 +45,25 @@ describe('Sequencer', () => {
     for (let i = 1; i <= 100 && at < 0; i++) if (s.step(DT, false, b)) at = i
     expect(Math.abs(at - 60)).toBeLessThanOrEqual(1)
     expect(s.step(DT, true, null)).toBe(false)
+  })
+})
+
+describe('Sequencer – czekanie na załadowanie klipu', () => {
+  it('nie liczy czasu, dopóki nowy klip nie gra (najwyżej 2 s)', () => {
+    const s = new Sequencer()
+    const item = { id: 'a', duration: 1, waitBeat: false }
+    for (let i = 0; i < 60; i++) expect(s.step(DT, false, item, false)).toBe(false)
+    let at = -1
+    for (let i = 1; i <= 120 && at < 0; i++) if (s.step(DT, false, item, true)) at = i
+    expect(Math.abs(at - 60)).toBeLessThanOrEqual(1)
+  })
+
+  it('klip, który się nie ładuje, po 2 s i tak zaczyna liczyć czas', () => {
+    const s = new Sequencer()
+    const item = { id: 'a', duration: 1, waitBeat: false }
+    let at = -1
+    for (let i = 1; i <= 400 && at < 0; i++) if (s.step(DT, false, item, false)) at = i
+    expect(Math.abs(at - 180)).toBeLessThanOrEqual(2)
   })
 })
 
@@ -95,5 +114,24 @@ describe('pickVideoId', () => {
     expect(pickVideoId(state(false, 'b'), null)).toBe('a')
     expect(pickVideoId(state(true, 'gone'), 'b')).toBe('b')
     expect(pickVideoId(state(true, 'gone'), 'zzz')).toBe('a')
+  })
+})
+
+describe('itemDuration (czas elementu dla zegara cięć)', () => {
+  const base = { duration: 16, loop: false, inPoint: 2, outPoint: 4.5 as number | null }
+
+  it('bez pętli: element trwa tyle, co fragment (jedno przejście)', () => {
+    expect(itemDuration(base, 30)).toBeCloseTo(2.5)
+    expect(itemDuration({ ...base, outPoint: null }, 30)).toBeCloseTo(28)
+    expect(itemDuration({ ...base, outPoint: 99 }, 10)).toBeCloseTo(8)
+  })
+
+  it('z pętlą: ustawiony czas', () => {
+    expect(itemDuration({ ...base, loop: true }, 30)).toBe(16)
+  })
+
+  it('nieznana długość pliku bez outPoint → ustawiony czas', () => {
+    expect(itemDuration({ ...base, outPoint: null }, null)).toBe(16)
+    expect(itemDuration(base, null)).toBeCloseTo(2.5)
   })
 })

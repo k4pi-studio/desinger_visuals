@@ -28,12 +28,12 @@ describe('parseClientMessage', () => {
       parse({
         type: 'timeline:update',
         id: 'i1',
-        patch: { duration: 8, waitBeat: false, inPoint: 1, outPoint: null, hack: 1 }
+        patch: { duration: 8, waitBeat: false, loop: true, inPoint: 1, outPoint: null, hack: 1 }
       })
     ).toEqual({
       type: 'timeline:update',
       id: 'i1',
-      patch: { duration: 8, waitBeat: false, inPoint: 1, outPoint: null }
+      patch: { duration: 8, waitBeat: false, loop: true, inPoint: 1, outPoint: null }
     })
   })
 

@@ -3,7 +3,7 @@
 // zatwierdzeniu pola (blur/Enter) albo po puszczeniu uchwytu.
 
 import { useEffect, useRef, useState } from 'react'
-import { TIMELINE_LIMITS, nextIndex } from '@shared/timeline'
+import { TIMELINE_LIMITS, itemDuration, nextIndex } from '@shared/timeline'
 import type { TimelineItem, VideoItem } from '@shared/types'
 import {
   timelineGoto,
@@ -139,16 +139,16 @@ function RangeBar({
  * Postęp bieżącego elementu liczony lokalnie od chwili, gdy panel zobaczył zmianę.
  * Nowy element = nowy `key`, więc licznik startuje od zera przy montażu.
  */
-function Progress({ item }: { item: TimelineItem }): React.JSX.Element {
+function Progress({ item, duration }: { item: TimelineItem; duration: number }): React.JSX.Element {
   const [p, setP] = useState(0)
   useEffect(() => {
     const start = performance.now()
     const t = setInterval(
-      () => setP(Math.min(1, (performance.now() - start) / 1000 / item.duration)),
+      () => setP(Math.min(1, (performance.now() - start) / 1000 / duration)),
       100
     )
     return () => clearInterval(t)
-  }, [item.id, item.duration])
+  }, [item.id, duration])
   return (
     <div className="mt-1 h-[2px] w-full bg-black" aria-hidden>
       <div className="h-full bg-current" style={{ width: `${p * 100}%` }} />
@@ -187,14 +187,38 @@ function Row({
         >
           {clip?.name ?? 'brak pliku'}
         </button>
-        <CommitField
-          label=""
-          value={item.duration}
-          step={1}
-          title="Czas elementu [s]"
-          onCommit={(v) => v !== null && timelineUpdate(item.id, { duration: v })}
-        />
-        <span className="text-meta text-muted">s</span>
+        <button
+          type="button"
+          className="tag tag-btn"
+          aria-pressed={item.loop}
+          title={
+            item.loop
+              ? 'Pętla: fragment powtarza się przez ustawiony czas (kliknij: jedno przejście)'
+              : 'Jedno przejście fragmentu, potem następne ujęcie (kliknij: pętla)'
+          }
+          onClick={() => timelineUpdate(item.id, { loop: !item.loop })}
+        >
+          ↻
+        </button>
+        {item.loop ? (
+          <>
+            <CommitField
+              label=""
+              value={item.duration}
+              step={1}
+              title="Czas pętli [s]"
+              onCommit={(v) => v !== null && timelineUpdate(item.id, { duration: v })}
+            />
+            <span className="text-meta text-muted">s</span>
+          </>
+        ) : (
+          <span
+            className="w-16 text-right text-meta text-muted tabular-nums"
+            title="Długość fragmentu"
+          >
+            {fmt(itemDuration(item, clip?.duration ?? null))} s
+          </span>
+        )}
         <button
           type="button"
           className="tag tag-btn"
@@ -251,7 +275,9 @@ function Row({
         />
         {clip?.duration ? <RangeBar item={item} clipDuration={clip.duration} /> : null}
       </div>
-      {live && <Progress key={item.id} item={item} />}
+      {live && (
+        <Progress key={item.id} item={item} duration={itemDuration(item, clip?.duration ?? null)} />
+      )}
     </div>
   )
 }

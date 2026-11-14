@@ -18,6 +18,7 @@ function parsePatch(v: Record<string, unknown>): TimelinePatch {
   const p: TimelinePatch = {}
   if (isNum(v.duration)) p.duration = v.duration
   if (typeof v.waitBeat === 'boolean') p.waitBeat = v.waitBeat
+  if (typeof v.loop === 'boolean') p.loop = v.loop
   if (isNum(v.inPoint)) p.inPoint = v.inPoint
   if (v.outPoint === null || isNum(v.outPoint)) p.outPoint = v.outPoint
   return p

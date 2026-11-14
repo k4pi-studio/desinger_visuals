@@ -55,6 +55,11 @@ export class VideoPool {
     }
   }
 
+  /** Grające wideo to ostatnio zlecony plik (podmiana już nastąpiła). */
+  get ready(): boolean {
+    return this.url !== null && this.activeUrl === this.url
+  }
+
   get active(): VideoSlot | null {
     return this.activeIndex === null ? null : this.slots[this.activeIndex]
   }

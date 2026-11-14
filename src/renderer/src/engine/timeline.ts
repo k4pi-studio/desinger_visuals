@@ -2,9 +2,13 @@
 // potem najbliższy beat, najpóźniej po `beatGrace`).
 
 import { TIMELINE_LIMITS } from '@shared/timeline'
+
+export { itemDuration } from '@shared/timeline'
 import type { AppState } from '@shared/types'
 
 const EPS = 1e-6
+/** Najdłużej czekamy na załadowanie nowego klipu, zanim zegar i tak ruszy [s]. */
+const LOAD_WAIT = 2
 
 /** Obwiednia beatu z BeatDetector ma 1 dokładnie w klatce uderzenia. */
 export function beatTriggered(beat: number): boolean {
@@ -21,9 +25,13 @@ export class Sequencer {
   private itemId: string | null = null
   private elapsed = 0
   private done = false
+  private waited = 0
 
-  /** Raz na klatkę; true = tnij teraz (raz na element). Bez alokacji. */
-  step(dt: number, beat: boolean, item: SequencerItem | null): boolean {
+  /**
+   * Raz na klatkę; true = tnij teraz (raz na element). Bez alokacji.
+   * `ready` = nowy klip już gra; do tego czasu (najwyżej LOAD_WAIT) zegar stoi.
+   */
+  step(dt: number, beat: boolean, item: SequencerItem | null, ready = true): boolean {
     if (!item) {
       this.itemId = null
       return false
@@ -31,9 +39,14 @@ export class Sequencer {
     if (item.id !== this.itemId) {
       this.itemId = item.id
       this.elapsed = 0
+      this.waited = 0
       this.done = false
     }
     if (this.done) return false
+    if (!ready && this.waited < LOAD_WAIT) {
+      this.waited += Math.max(dt, 0)
+      return false
+    }
     this.elapsed += Math.max(dt, 0)
     const due = this.elapsed >= item.duration - EPS
     const cut = item.waitBeat
