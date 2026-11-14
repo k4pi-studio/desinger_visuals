@@ -2,6 +2,7 @@
 // potem najbliższy beat, najpóźniej po `beatGrace`).
 
 import { TIMELINE_LIMITS } from '@shared/timeline'
+import type { AppState } from '@shared/types'
 
 const EPS = 1e-6
 
@@ -41,4 +42,36 @@ export class Sequencer {
     if (cut) this.done = true
     return cut
   }
+}
+
+/**
+ * Pętla fragmentu: dokąd przewinąć wideo (s) albo null. Koniec fragmentu to
+ * `outPoint`, ale nie dalej niż koniec pliku; `inPoint` poza plikiem = 0.
+ * Wywoływane co klatkę – bez alokacji.
+ */
+export function loopTarget(
+  time: number,
+  fileDuration: number,
+  inPoint: number,
+  outPoint: number | null
+): number | null {
+  const known = Number.isFinite(fileDuration) && fileDuration > 0
+  const start = known && inPoint >= fileDuration ? 0 : inPoint
+  let end = outPoint ?? Infinity
+  if (known && fileDuration < end) end = fileDuration
+  if (time >= end - 1 / 120 || time < start - 0.25) return start
+  return null
+}
+
+/**
+ * Klip do odtwarzania. Gdy kolejka gra, wygrywa klip bieżącego elementu;
+ * inaczej stały plik z node'a źródła (jeśli jest w bibliotece) albo aktywne wideo.
+ */
+export function pickVideoId(state: AppState, sourceFixedId: string | null): string | null {
+  const has = (id: string | null): id is string =>
+    id !== null && state.library.some((v) => v.id === id)
+  const t = state.timeline
+  const item = t.playing ? t.items[t.index] : undefined
+  if (item && has(item.videoId)) return item.videoId
+  return has(sourceFixedId) ? sourceFixedId : state.activeId
 }

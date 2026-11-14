@@ -16,11 +16,13 @@ import {
   type AppState,
   type AudioStatus,
   type GraphNode,
-  type ParamValue
+  type ParamValue,
+  type TimelineItem
 } from '@shared/types'
 import { AudioInput } from './audio/capture'
 import { compileGraph, SignalBus, type CompiledGraph } from './graph'
 import { createEffect, type EffectHandle } from './nodes/effects'
+import { Sequencer, beatTriggered, pickVideoId } from './timeline'
 import { VideoPool, type VideoSlot } from './video/VideoSource'
 
 interface ActiveEffect {
@@ -46,6 +48,9 @@ export class Engine {
   private compiled: CompiledGraph = compileGraph({ version: 1, nodes: [], edges: [] })
   private readonly bus = new SignalBus(this.compiled, this.nodes)
   private state: AppState | null = null
+  private readonly sequencer = new Sequencer()
+  /** Bieżący element kolejki, gdy gra; czytany w pętli bez alokacji. */
+  private timelineItem: TimelineItem | null = null
 
   private raf = 0
   private lastFrame = 0
@@ -89,6 +94,7 @@ export class Engine {
     this.bus.setGraph(this.compiled, this.nodes)
     if (this.compiled.chainKey !== prevKey || !this.composer) this.rebuild()
     this.updateVideo()
+    this.updateTimeline(state)
     this.audio.request(state.audio.deviceId)
   }
 
@@ -116,7 +122,22 @@ export class Engine {
     this.canvas.remove()
   }
 
-  /** Plik do odtwarzania: z node'a źródła, a gdy go nie ma w bibliotece – aktywne wideo. */
+  /** Bieżący element kolejki → fragment od–do w puli wideo (restart przy zmianie elementu). */
+  private updateTimeline(state: AppState): void {
+    const t = state.timeline
+    const item = t.playing ? (t.items[t.index] ?? null) : null
+    const prev = this.timelineItem
+    this.timelineItem = item
+    if (!item) {
+      this.pool.clearRange()
+      return
+    }
+    const changed = prev?.id !== item.id
+    if (changed || prev.inPoint !== item.inPoint || prev.outPoint !== item.outPoint)
+      this.pool.setRange(item.inPoint, item.outPoint, changed)
+  }
+
+  /** Plik do odtwarzania: klip kolejki, stały plik z node'a źródła albo aktywne wideo. */
   private updateVideo(): void {
     const state = this.state
     if (!state) return
@@ -124,10 +145,7 @@ export class Engine {
     let id: string | null = null
     if (source) {
       const fixed = source.params.videoId
-      id =
-        typeof fixed === 'string' && state.library.some((v) => v.id === fixed)
-          ? fixed
-          : state.activeId
+      id = pickVideoId(state, typeof fixed === 'string' ? fixed : null)
     }
     const base = state.server.localUrl
     this.pool.request(
@@ -187,6 +205,10 @@ export class Engine {
 
     const levels = this.audio.update(now)
     this.bus.evaluate(levels, dt)
+
+    if (this.sequencer.step(dt, beatTriggered(levels.beat), this.timelineItem))
+      window.api.timelineNext()
+    this.pool.enforceRange()
 
     const sourceId = this.compiled.sourceId
     if (sourceId) {
