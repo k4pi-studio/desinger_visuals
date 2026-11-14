@@ -15,6 +15,8 @@ prośbę „zmieniaj wideo na beat, ale nie częściej niż co X”.
   grafu zapisują się do niego.
 - Przejście do następnego klipu po czasie elementu (domyślnie 16 s). Z włączonym
   „czekaj na beat” cięcie wypada na najbliższe uderzenie basu.
+- Każdy element może grać tylko fragment klipu: punkty „od” i „do” (np. 3 s
+  z 30-sekundowego klipu), zapętlone, dopóki element gra.
 - Kolejkę zmieniasz w trakcie grania i to nie przerywa obrazu: zmienia się tylko
   to, co będzie dalej.
 - Timeline działa, gdy panel jest zamknięty.
@@ -51,6 +53,8 @@ interface TimelineItem {
   graph: Graph // efekty tego klipu
   duration: number // s, 1–600, domyślnie 16
   waitBeat: boolean // domyślnie true
+  inPoint: number // s od początku klipu, domyślnie 0
+  outPoint: number | null // s; null = do końca klipu
 }
 interface Timeline {
   playing: boolean
@@ -61,7 +65,8 @@ interface Timeline {
 
 `AppState.timeline: Timeline`. Stan jest zapisywany jak reszta stanu w `store.ts`
 i rozsyłany komunikatem `state`. `sanitizeTimeline` robi to samo co `sanitizeGraph`:
-przycina `duration`, czyści graf przez `sanitizeGraph`, poprawia `index` do zakresu
+przycina `duration`, ustawia `inPoint ≥ 0` i `outPoint > inPoint + 0,1 s`
+(inaczej `null`), czyści graf przez `sanitizeGraph`, poprawia `index` do zakresu
 i odrzuca elementy bez `videoId`. Elementy, których klipu już nie ma w bibliotece,
 zostają, ale odtwarzanie je pomija.
 
@@ -69,7 +74,7 @@ zostają, ale odtwarzanie je pomija.
 
 Z panelu (walidowane w `protocol.ts`):
 `timeline:add {videoId}` (graf = kopia bieżącego), `timeline:remove {id}`,
-`timeline:move {id, to}`, `timeline:update {id, duration?, waitBeat?}`,
+`timeline:move {id, to}`, `timeline:update {id, duration?, waitBeat?, inPoint?, outPoint?}`,
 `timeline:play {playing}`, `timeline:goto {index}`.
 
 Z okna Visualizera nowy kanał IPC `front:timeline-next` (w preload, jak `sendAudio`).
@@ -92,6 +97,16 @@ Czysta klasa `Sequencer`:
   nie zatrzymała seta.
 - Wysyła jedno żądanie cięcia i czeka, aż zmieni się bieżący element.
 
+### Fragment klipu (pętla od–do)
+
+Gdy timeline gra, renderer przekazuje do `VideoPool` zakres bieżącego elementu.
+W każdej klatce sprawdza, czy `currentTime ≥ outPoint` (albo koniec pliku); jeśli
+tak, przewija do `inPoint`. Robi to w pętli rAF, bo `timeupdate` przychodzi za
+rzadko (~250 ms) jak na krótkie pętle. Po cięciu nowy klip startuje od swojego
+`inPoint`, a `outPoint` dłuższy niż plik działa jak „do końca”. Bez timeline'u
+wideo zachowuje się jak dziś. Czystą logikę („czy przewinąć i dokąd”) trzymamy
+w funkcji z testami.
+
 ### Panel
 
 Kolejka jest w panelu Biblioteka, nad listą klipów:
@@ -99,6 +114,7 @@ Kolejka jest w panelu Biblioteka, nad listą klipów:
 ```
 ┌ KOLEJKA ─────────────── [▶ Graj] [⏭] ┐
 │ ▸ 1  clouds.mp4    16 s  ♪  ↑ ↓ ✕     │  ← gra, pasek postępu
+│      fragment [ 12,0 ]–[ 15,0 ] s  ━━█▬▬█━━━ │  ← od–do na długości klipu
 │   2  dancer.mp4     8 s  ♪  ↑ ↓ ✕     │
 │   3  birds.mp4     24 s     ↑ ↓ ✕     │
 └───────────────────────────────────────┘
@@ -106,6 +122,8 @@ Kolejka jest w panelu Biblioteka, nad listą klipów:
 ```
 
 - Przy każdym klipie biblioteki jest przycisk „+ do kolejki”.
+- Fragment: dwa pola „od” i „do” (s, krok 0,1) oraz pasek długości klipu
+  z dwoma uchwytami. Puste „do” oznacza do końca.
 - Pole czasu, przełącznik ♪ (czekaj na beat), ↑ ↓ i ✕ przy każdym elemencie.
 - Klik w element przechodzi do niego (`goto`).
 - Pasek postępu liczy panel z czasu stanu. Nie musi być idealny.
@@ -121,6 +139,7 @@ Kolejka jest w panelu Biblioteka, nad listą klipów:
 ## Testy
 
 Testy jednostkowe: `Sequencer` (czas, beat, limit 4 s, reset po zmianie elementu),
+pętla fragmentu (przewinięcie przy `outPoint`, `outPoint` dłuższy niż plik, start od `inPoint`),
 `sanitizeTimeline`, walidacja komunikatów w `protocol.ts`, obsługa komunikatów
 w `store.ts` (dodaj, usuń, przesuń, następny z pomijaniem brakujących klipów,
 zapis zmian grafu do bieżącego elementu). Panel i renderer sprawdza się zrzutami
