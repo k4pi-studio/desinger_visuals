@@ -33,6 +33,12 @@ import {
   setCrtSkin,
   setLan,
   setParamValue,
+  timelineAdd,
+  timelineGoto,
+  timelineMove,
+  timelinePlay,
+  timelineRemove,
+  timelineUpdate,
   usePanel
 } from './store'
 
@@ -212,5 +218,25 @@ describe('styl node’ów CRT', () => {
     })
     setCrtSkin('blackpanel')
     expect(usePanel.getState().crtSkin).toBe('blackpanel')
+  })
+})
+
+describe('akcje kolejki klipów', () => {
+  it('każda akcja wysyła jeden komunikat timeline:*', () => {
+    conn.sent.length = 0
+    timelineAdd('v1')
+    timelineRemove('i1')
+    timelineMove('i1', 2)
+    timelineUpdate('i1', { duration: 8, outPoint: null })
+    timelinePlay(true)
+    timelineGoto(3)
+    expect(conn.sent).toEqual([
+      { type: 'timeline:add', videoId: 'v1' },
+      { type: 'timeline:remove', id: 'i1' },
+      { type: 'timeline:move', id: 'i1', to: 2 },
+      { type: 'timeline:update', id: 'i1', patch: { duration: 8, outPoint: null } },
+      { type: 'timeline:play', playing: true },
+      { type: 'timeline:goto', index: 3 }
+    ])
   })
 })

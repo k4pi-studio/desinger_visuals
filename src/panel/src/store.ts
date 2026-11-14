@@ -4,7 +4,7 @@
 import { create } from 'zustand'
 import { deleteElements, setParam, splitPort } from '@shared/graph'
 import { findNumberParam } from '@shared/nodes'
-import type { AppState, AudioLevels, Graph, ParamValue } from '@shared/types'
+import type { AppState, AudioLevels, Graph, ParamValue, TimelinePatch } from '@shared/types'
 import { connection } from './api'
 
 export type Tab = 'effects' | 'graph'
@@ -130,6 +130,25 @@ export const setFullscreen = (on: boolean, displayId: number | null): void =>
 export const setLan = (enabled: boolean): void => connection.send({ type: 'settings:lan', enabled })
 
 export const createLoopback = (): void => connection.send({ type: 'audio:loopback' })
+
+// --- Kolejka klipów ---
+
+export const timelineAdd = (videoId: string): void =>
+  connection.send({ type: 'timeline:add', videoId })
+
+export const timelineRemove = (id: string): void => connection.send({ type: 'timeline:remove', id })
+
+export const timelineMove = (id: string, to: number): void =>
+  connection.send({ type: 'timeline:move', id, to })
+
+export const timelineUpdate = (id: string, patch: TimelinePatch): void =>
+  connection.send({ type: 'timeline:update', id, patch })
+
+export const timelinePlay = (playing: boolean): void =>
+  connection.send({ type: 'timeline:play', playing })
+
+export const timelineGoto = (index: number): void =>
+  connection.send({ type: 'timeline:goto', index })
 
 /**
  * Domyślny kabel do parametru: sygnał 0..1 dodaje do bieżącej wartości
