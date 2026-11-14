@@ -55,6 +55,17 @@ Nowy typ node'a: definicja w `src/shared/nodes.ts`, a dla filtra efekt w `engine
 - Wydajność: React nie bierze udziału w klatce. W pętli rAF niczego nie alokuj. Graf kompiluj tylko przy zmianie struktury. Bypass przebudowuje przejścia efektów, bo wyłączone ostatnie przejście nie rysowałoby na ekran.
 - Kod ma przejść `npm run typecheck`, `npm run lint` i `npm test`. Formatowanie: Prettier.
 
+## Commity
+
+Agent, który edytuje pliki (`electron-main`, `ipc-bridge`, `react-ui`, `build-release`), commituje swoje zmiany po skończonym zadaniu. `reviewer` nie commituje.
+
+- Commituj dopiero, gdy przechodzą `typecheck`, `lint` i `test`. Przy czerwonych komendach nie commituj, tylko opisz problem w raporcie.
+- Dodawaj wyłącznie pliki zmienione w tym zadaniu (`git add <ścieżki>`, bez `git add -A`). Cudzych niezacommitowanych zmian nie ruszaj i nie wrzucaj do swojego commita.
+- Nigdy nie commituj na `main`. Jeśli jesteś na `main`, najpierw utwórz gałąź.
+- Bez `push`, `--amend`, `rebase`, `reset` i `--no-verify`.
+- Wiadomość: krótki tytuł po polsku w trybie rozkazującym (np. „Graf na pełny ekran z pływającymi panelami”), pusta linia, potem 1–3 linie „co i dlaczego”. Na końcu linia atrybucji z instrukcji sesji (`Co-Authored-By: …`).
+- Jedno zadanie = jeden commit. Poprawki po przeglądzie to osobny commit.
+
 ## Weryfikacja
 
 ```bash

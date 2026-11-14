@@ -1,3 +1,5 @@
+import '@fontsource/geist-pixel/400.css'
+import '@fontsource/geist-mono/400.css'
 import './assets/main.css'
 
 import { createRoot } from 'react-dom/client'

@@ -1,33 +1,797 @@
 @import 'tailwindcss';
 @import '@xyflow/react/dist/style.css';
 
-@theme {
-  --color-accent: #a78bfa;
-  --color-signal: #22d3ee;
+/*
+ * Język wizualny: czerń + biel terminala (rgb 229), tekst drugorzędny rgb 170 (bez alfy),
+ * dither tylko jako drobny detal, hover/aktywne = inwersja, radius 0, zero cieni, bez tła
+ * i bez backdrop-filter. Kolory ANSI (xterm) tylko dla audio, sygnałów, stanu online i błędów.
+ */
+
+/* static: zmienne emitowane zawsze, bo kolory pasm idą też przez style={{}} (var(--color-term-*)). */
+@theme static {
+  /* Tekst domyślnie w Geist Mono (czytelność). Geist Pixel tylko dla nagłówków, etykiet caps,
+     tagów i przycisków (`font-pixel`). */
+  --font-sans: 'Geist Mono', ui-monospace, monospace;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --font-pixel: 'Geist Pixel', 'Geist Mono', ui-monospace, monospace;
+  --font-display: 'Pixelify Sans', 'Geist Pixel', monospace;
+
+  /* Typografia: UI 13px, meta/liczby 12px mono, display tylko 24/48px. */
+  --text-ui: 13px;
+  --text-ui--line-height: 20px;
+  --text-title: 16px;
+  --text-title--line-height: 24px;
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+  --text-display: 24px;
+  --text-display--line-height: 24px;
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 48px;
+
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
+  /* Paleta xterm (domyślne ANSI). */
+  --color-term-white: rgb(229 229 229);
+  --color-line-dim: rgb(85 85 85);
+  --color-term-red: rgb(205 0 0);
+  --color-term-green: rgb(0 205 0);
+  --color-term-yellow: rgb(205 205 0);
+  --color-term-blue: rgb(0 0 238);
+  --color-term-magenta: rgb(205 0 205);
+  --color-term-cyan: rgb(0 205 205);
+  /* Jasne warianty (90–97): biel inwersji, czytelny tekst red/magenta, widoczny niebieski. */
+  --color-term-bright-white: #fff;
+  --color-term-bright-red: rgb(255 0 0);
+  --color-term-bright-magenta: rgb(255 0 255);
+  --color-term-bright-blue: rgb(92 92 255);
+  /* Tekst błędów i trybu usuwania (≥ 4.5:1 na czerni). */
+  --color-danger: rgb(255 85 85);
+
+  /* Ruch: wyjście 120, wciśnięcie 90 ms. */
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-out: 120ms;
+  --duration-press: 90ms;
 }
 
-html,
-body,
-#root {
-  height: 100%;
+/* Kolory zależne od kontekstu: inwersja przełącza zmienne, więc dzieci odwracają się same. */
+@theme inline {
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-bg: var(--bg);
 }
 
-body {
-  margin: 0;
-  background: #0a0a0a;
-  color: #e5e5e5;
-  font-family: system-ui, sans-serif;
-  color-scheme: dark;
+:root {
+  --fg: var(--color-term-white);
+  /* Drugorzędny tekst: VGA white, pełny kolor bez alfy (~9:1 na czerni). */
+  --muted: rgb(170 170 170);
+  --bg: #000;
+  --line: var(--color-term-white);
+  --line-dim: var(--color-line-dim);
+  --dither-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23e5e5e5'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23e5e5e5'/%3E%3C/svg%3E");
 }
 
-input[type='range'] {
-  accent-color: var(--color-accent);
+@layer base {
+  /* ---------- Baza ---------- */
+
+  html {
+    background: #000;
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 400;
+    font-synthesis: none;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    text-rendering: optimizeSpeed;
+  }
+
+  b,
+  strong,
+  h1,
+  h2,
+  h3,
+  th {
+    font-weight: 400;
+  }
+
+  ::selection {
+    background: var(--color-term-bright-white);
+    color: #000;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--color-term-bright-white);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Kontrolki ---------- */
+
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  .field,
+  select {
+    appearance: none;
+    min-width: 0;
+    min-height: 32px;
+    border: 1px solid var(--line);
+    background-color: #000;
+    color: var(--fg);
+    padding: 4px 8px;
+    line-height: 20px;
+  }
+
+  select {
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='4' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h8v1H0zM2 1h4v1H2zM3 2h2v1H3z' fill='%23e5e5e5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 8px 4px;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+
+  select option {
+    background: #000;
+    color: var(--color-term-white);
+  }
+
+  .field::placeholder {
+    color: var(--muted);
+  }
+
+  input[type='number'] {
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+
+  /* Wąskie pole liczby w podpiętym parametrze (24px, 44px przy dotyku). */
+  .field.field-sm {
+    min-height: 24px;
+    padding: 0 4px;
+    line-height: 22px;
+  }
+
+  /* „~”: natywny select ostylowany jako mały tag (podepnij sygnał). */
+  select.sig-select {
+    min-height: 20px;
+    /* Stała szerokość: bez niej select ma szerokość najdłuższej opcji. */
+    width: 28px;
+    flex: none;
+    text-align: center;
+    padding: 0 4px;
+    border: 1px solid var(--line);
+    background-image: none;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--fg);
+  }
+
+  /* „+ dodaj efekt…”: select w stylu przycisku. */
+  select.select-btn {
+    width: auto;
+  }
+
+  input[type='checkbox'] {
+    appearance: none;
+    flex: none;
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    border: 1px solid var(--line);
+    background: #000;
+    cursor: pointer;
+  }
+
+  input[type='checkbox']:checked {
+    background: var(--fg);
+  }
+
+  /* Suwak: tor 2px (rgb 85), wypełnienie do wartości w term-white przez --p (0..1), kciuk 10×14. */
+  input[type='range'] {
+    --p: 0;
+    --fill: var(--color-term-white);
+    --rest: var(--color-line-dim);
+    --thumb: var(--color-term-white);
+    --thumb-w: 10px;
+    appearance: none;
+    display: block;
+    width: 100%;
+    height: 16px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      var(--fill) calc(var(--thumb-w) / 2 + (100% - var(--thumb-w)) * var(--p)),
+      var(--rest) 0
+    );
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    width: var(--thumb-w);
+    height: 14px;
+    margin-top: -6px;
+    border: 0;
+    background: var(--thumb);
+  }
+
+  input[type='range']::-moz-range-track {
+    height: 2px;
+    background: var(--rest);
+  }
+
+  input[type='range']::-moz-range-progress {
+    height: 2px;
+    background: var(--fill);
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: var(--thumb-w);
+    height: 14px;
+    border: 0;
+    border-radius: 0;
+    background: var(--thumb);
+  }
+
+  /* Bypass (OFF): cały blok drugorzędny, suwak wygaszony pełnymi kolorami. */
+  .is-off {
+    --fg: rgb(170 170 170);
+  }
+
+  .is-off input[type='range'] {
+    --fill: var(--color-line-dim);
+    --rest: var(--color-line-dim);
+    --thumb: rgb(170 170 170);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: #000;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-term-white);
+    border: 2px solid #000;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-color: var(--color-term-white) #000;
+      scrollbar-width: thin;
+    }
+  }
 }
 
+@layer components {
+  /* ---------- Powierzchnie i wzory ---------- */
+
+  /* Powierzchnia panelu: pełna czerń i ramka 1px w pełnym kolorze (bez przezroczystości). */
+  .surface {
+    background: #000;
+    border: 1px solid var(--line-dim);
+  }
+
+  /* Wiersze listy oddzielone kropkowaną linią 1px (bez kart w kartach). */
+  .rows > * + * {
+    border-top: 1px dotted var(--line);
+  }
+
+  /* Dither tylko jako mały detal (ramka ostrzeżenia, tor suwaka). */
+  .dither-12 {
+    background-color: #000;
+    background-image: var(--dither-12);
+    image-rendering: pixelated;
+  }
+
+  .inv {
+    --fg: #000;
+    --muted: rgb(85 85 85);
+    --line: #000;
+    background-color: var(--color-term-bright-white);
+    color: var(--fg);
+  }
+
+  /* Ciąg znaków box-drawing przycięty do szerokości (wypełnienie linii bez liczenia w JS). */
+  .ascii-fill {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .ascii-v {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+    white-space: pre;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 12px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* Tag w ramce 1px: [SRC] [ON] [F11]. */
+  .tag {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    border: 1px solid currentColor;
+    padding: 0 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 16px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ---------- Sekcja zwijana ---------- */
+  /*
+   * Rozwinięta: `.is-open` (klik, przeciąganie pliku) albo hover / fokus z klawiatury (mysz).
+   * Zamykanie z opóźnieniem 150 ms bez animacji wysokości (zmiana skokowa po czasie),
+   * żeby panel nie migał przy przejściu kursora.
+   */
+  .collapsible-body {
+    max-height: var(--collapsible-max, 60vh);
+    overflow-y: auto;
+    visibility: visible;
+    transition:
+      max-height 0s,
+      visibility 0s;
+  }
+
+  .collapsible:not(.is-open) .collapsible-body {
+    max-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    transition:
+      max-height 0s 150ms,
+      visibility 0s 150ms;
+  }
+
+  /* Podsumowanie (np. aktywne wideo) widać tylko w stanie zwiniętym. */
+  .collapsible-summary {
+    max-height: 48px;
+    overflow: hidden;
+    padding: 0 12px 8px;
+    visibility: visible;
+    transition:
+      max-height 0s 150ms,
+      padding 0s 150ms,
+      visibility 0s 150ms;
+  }
+
+  .collapsible.is-open .collapsible-summary {
+    max-height: 0;
+    padding-bottom: 0;
+    visibility: hidden;
+    transition: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .collapsible:hover .collapsible-body,
+    .collapsible:has(:focus-visible) .collapsible-body {
+      max-height: var(--collapsible-max, 60vh);
+      overflow-y: auto;
+      visibility: visible;
+      transition:
+        max-height 0s,
+        visibility 0s;
+    }
+
+    .collapsible:hover .collapsible-summary,
+    .collapsible:has(:focus-visible) .collapsible-summary {
+      max-height: 0;
+      padding-bottom: 0;
+      visibility: hidden;
+      transition: none;
+    }
+  }
+
+  /* ---------- Przyciski ---------- */
+
+  .btn {
+    font-family: var(--font-pixel);
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1px solid var(--line);
+    padding: 0 8px;
+    min-height: 24px;
+    background: transparent;
+    color: var(--fg);
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: transform var(--duration-press) var(--ease-snap);
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    border-color: var(--color-term-bright-white);
+    background: var(--color-term-bright-white);
+    color: #000;
+  }
+
+  .btn-primary::before,
+  .btn-link::before {
+    content: '[';
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .btn-primary::after,
+  .btn-link::after {
+    content: ']';
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .btn-link {
+    gap: 0;
+    border-color: transparent;
+    padding: 0 4px;
+  }
+
+  /* Wyłączony: kropkowana ciemna ramka i tekst drugorzędny (dither pod tekstem był nieczytelny). */
+  .btn:disabled {
+    cursor: not-allowed;
+    color: var(--muted);
+    border-style: dotted;
+    border-color: var(--line-dim);
+    background: transparent;
+  }
+
+  .btn-link:disabled {
+    border-color: transparent;
+  }
+
+  /* Przełącznik w tagu (ON/OFF), włączony = inwersja. */
+  .tag-btn {
+    cursor: pointer;
+    background: transparent;
+    color: var(--fg);
+    min-height: 24px;
+    padding: 0 8px;
+    transition: transform var(--duration-press) var(--ease-snap);
+  }
+
+  .tag-btn:active {
+    transform: translateY(1px);
+  }
+
+  .tag-btn[aria-pressed='true'] {
+    background: var(--color-term-bright-white);
+    border-color: var(--color-term-bright-white);
+    color: #000;
+  }
+
+  /* Hover tylko na myszy; klawiatura dostaje ten sam stan przez :focus-visible. */
+  .btn:not(:disabled):focus-visible,
+  .tag-btn:focus-visible,
+  .inv-hover:focus-visible {
+    background: var(--color-term-bright-white);
+    border-color: var(--color-term-bright-white);
+    color: #000;
+    --fg: #000;
+    --muted: rgb(85 85 85);
+    --line: #000;
+  }
+
+  .btn-primary:not(:disabled):focus-visible {
+    background: #000;
+    color: var(--color-term-bright-white);
+  }
+
+  .btn-link:not(:disabled):focus-visible {
+    background: transparent;
+    color: var(--color-term-white);
+    --fg: var(--color-term-white);
+    text-decoration: underline;
+  }
+
+  .btn-danger:not(:disabled):focus-visible {
+    background: var(--color-term-red);
+    border-color: var(--color-term-red);
+    color: var(--color-term-bright-white);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn:not(:disabled):hover,
+    .tag-btn:hover,
+    .inv-hover:hover {
+      background: var(--color-term-bright-white);
+      border-color: var(--color-term-bright-white);
+      color: #000;
+      --fg: #000;
+      --muted: rgb(85 85 85);
+      --line: #000;
+    }
+
+    .btn-primary:not(:disabled):hover {
+      background: #000;
+      color: var(--color-term-bright-white);
+    }
+
+    .btn-link:not(:disabled):hover {
+      background: transparent;
+      border-color: transparent;
+      color: inherit;
+      --fg: inherit;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .btn-danger:not(:disabled):hover {
+      background: var(--color-term-red);
+      border-color: var(--color-term-red);
+      color: var(--color-term-bright-white);
+    }
+
+    .btn-link.btn-danger:not(:disabled):hover {
+      background: transparent;
+      border-color: transparent;
+      color: var(--color-danger);
+    }
+
+    .tag-btn[aria-pressed='true']:hover {
+      background: #000;
+      border-color: currentColor;
+      color: var(--color-term-bright-white);
+    }
+
+    select.sig-select:hover,
+    select.select-btn:hover {
+      background-color: var(--color-term-bright-white);
+      border-color: var(--color-term-bright-white);
+      color: #000;
+    }
+
+    .link:hover {
+      color: var(--fg);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .reveal-on-hover:hover .reveal {
+      opacity: 1;
+    }
+  }
+
+  .link:focus-visible {
+    text-decoration: underline;
+  }
+
+  /* Akcja widoczna na hover, fokus w wierszu i zawsze na ekranach dotykowych. */
+  .reveal {
+    opacity: 0;
+    transition: opacity var(--duration-out) var(--ease-snap);
+  }
+
+  .reveal-on-hover:focus-within .reveal {
+    opacity: 1;
+  }
+
+  /* ---------- Dotyk: cele 44px ---------- */
+
+  @media (pointer: coarse) {
+    .btn,
+    .tag-btn,
+    .tap,
+    .field,
+    select {
+      min-height: 44px;
+    }
+
+    .btn,
+    .tag-btn,
+    select.sig-select {
+      min-width: 44px;
+    }
+
+    input[type='range'] {
+      --thumb-w: 20px;
+      height: 44px;
+    }
+
+    input[type='range']::-webkit-slider-thumb {
+      height: 20px;
+      margin-top: -9px;
+    }
+
+    input[type='range']::-moz-range-thumb {
+      height: 20px;
+    }
+
+    input[type='checkbox'] {
+      width: 20px;
+      height: 20px;
+    }
+
+    .reveal {
+      opacity: 1;
+    }
+  }
+}
+
+/* Poza warstwami, bo style React Flow też są poza warstwami. */
+/* ---------- React Flow ---------- */
+
+.react-flow,
+.react-flow.dark {
+  --xy-background-color: transparent;
+  --xy-background-pattern-color: var(--color-term-bright-white);
+  --xy-node-border-radius: 0;
+  --xy-node-boxshadow-hover: none;
+  --xy-node-boxshadow-selected: none;
+  --xy-edge-stroke: var(--color-term-white);
+  --xy-edge-stroke-selected: var(--color-term-bright-white);
+  --xy-edge-label-background-color: #000;
+  --xy-edge-label-color: var(--color-term-white);
+  --xy-connectionline-stroke: var(--color-term-bright-white);
+  --xy-handle-background-color: var(--color-term-bright-white);
+  --xy-handle-border-color: #000;
+  --xy-selection-background-color: transparent;
+  --xy-selection-border: 1px dotted var(--color-term-bright-white);
+  --xy-controls-box-shadow: none;
+  --xy-controls-button-background-color: #000;
+  --xy-controls-button-background-color-hover: var(--color-term-bright-white);
+  --xy-controls-button-color: var(--color-term-white);
+  --xy-controls-button-color-hover: #000;
+  --xy-controls-button-border-color: var(--color-term-white);
+  --xy-minimap-background-color: #000;
+  --xy-minimap-mask-background-color: rgb(0 0 0 / 0.7);
+  --xy-minimap-mask-stroke-color: var(--color-term-bright-white);
+  --xy-minimap-mask-stroke-width: 1;
+  --xy-minimap-node-background-color: var(--color-term-white);
+  --xy-minimap-node-stroke-color: transparent;
+  --xy-attribution-background-color: transparent;
+}
+
+.react-flow__background {
+  opacity: 0.15;
+}
+
+.react-flow__controls {
+  border: 1px solid var(--color-term-white);
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  border-radius: 0;
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--color-term-white);
+  border-radius: 0;
+}
+
+/* Uchwyty: pełny kwadrat = obraz, pusty = sygnał. */
 .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.react-flow__handle.vz-handle-video {
   width: 10px;
   height: 10px;
-  border: 2px solid #0a0a0a;
+  border: 1px solid #000;
+  background: var(--color-term-bright-white);
+}
+
+/* Strefa trafienia ~20×20 px (wysokość rzędu), nie zachodzi na sąsiedni rząd.
+   Pseudo-element należy do uchwytu, więc liczy się też w elementFromPoint React Flow. */
+.react-flow__handle::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+.react-flow__handle.vz-handle-video::after {
+  inset: -6px;
+}
+
+.react-flow__handle.vz-handle-signal {
+  border: 1px solid var(--handle-color, var(--color-term-white));
+  background: #000;
+}
+
+@media (pointer: coarse) {
+  .react-flow__handle,
+  .react-flow__handle.vz-handle-video {
+    width: 16px;
+    height: 16px;
+  }
+
+  .react-flow__handle::after,
+  .react-flow__handle.vz-handle-video::after {
+    inset: -2px;
+  }
+}
+
+/* Ciągnięcie kabla: uchwyty innego rodzaju bledną, pasujące (po drugiej stronie) w obrysie. */
+.vz-connecting-video .react-flow__handle.vz-handle-signal,
+.vz-connecting-signal .react-flow__handle.vz-handle-video {
+  opacity: 0.25;
+}
+
+.vz-connecting-video.vz-connecting-from-source .react-flow__handle.vz-handle-video.target,
+.vz-connecting-video.vz-connecting-from-target .react-flow__handle.vz-handle-video.source,
+.vz-connecting-signal.vz-connecting-from-source .react-flow__handle.vz-handle-signal.target,
+.vz-connecting-signal.vz-connecting-from-target .react-flow__handle.vz-handle-signal.source {
+  outline: 1px solid var(--color-term-bright-white);
+  outline-offset: 1px;
+}
+
+.vz-connecting-video .react-flow__handle.connectingto.valid,
+.vz-connecting-signal .react-flow__handle.connectingto.valid {
+  outline: 2px solid var(--color-term-bright-white);
+  outline-offset: 2px;
+  background: var(--color-term-bright-white);
+}
+
+/* Kabel obrazu upuszczony na korpus node'a też się podłączy (tylko gdy połączenie jest możliwe). */
+.vz-connecting-video .react-flow__node.vz-node-linkable:hover > div {
+  outline: 1px dotted var(--color-term-bright-white);
+  outline-offset: 2px;
+}
+
+/* Filtr przeciągany nad kablem obrazu: kabel, w który się wepnie. */
+.react-flow__edge.vz-edge-drop .react-flow__edge-path {
+  stroke: var(--color-term-bright-white) !important;
+  stroke-width: 4 !important;
+  stroke-dasharray: 4 2 !important;
+}
+
+.react-flow__node.vz-node-drop > div {
+  outline: 1px dotted var(--color-term-bright-white);
+  outline-offset: 2px;
 }
 
 /* Tryb usuwania w grafie: kabel pod kursorem na czerwono. */
@@ -36,6 +800,45 @@ input[type='range'] {
 }
 
 .react-flow__edge.vz-edge-delete:hover .react-flow__edge-path {
-  stroke: #ef4444 !important;
+  stroke: var(--color-danger) !important;
   stroke-width: 4 !important;
+}
+
+.vz-delete-frame {
+  outline: 1px dotted var(--color-danger);
+  outline-offset: -1px;
+}
+
+/* Pakiety na kablach (FlowEdge): ukryte w trybie usuwania i przy ograniczonym ruchu. */
+.vz-delete-frame .vz-packets {
+  visibility: hidden;
+}
+
+/* ---------- Ruch ograniczony ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .btn:active:not(:disabled),
+  .tag-btn:active {
+    transform: none;
+  }
+
+  .vz-packets {
+    visibility: hidden;
+  }
+}
+
+/* Tryb usuwania: node pod kursorem w ramce danger. */
+@media (hover: hover) and (pointer: fine) {
+  .vz-node-delete:hover {
+    border-color: var(--color-danger);
+    outline: 1px solid var(--color-danger);
+  }
 }

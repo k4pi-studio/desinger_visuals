@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { VideoItem } from '@shared/types'
 import { api, postJson, uploadFiles, url } from '../api'
+import { asciiBar } from '../ascii'
 import { selectVideo, usePanel } from '../store'
-import { Button, Section } from './ui'
+import { AsciiBox, Button, Section, Tag } from './ui'
 
 const attempted = new Set<string>()
 
@@ -68,7 +69,8 @@ const formatDuration = (s: number | null): string =>
 const formatSize = (b: number): string =>
   b > 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1)} GB` : `${Math.round(b / 1024 ** 2)} MB`
 
-export function Library(): React.JSX.Element {
+/** `collapsible`: zwinięta sekcja pływająca nad grafem (aktywne wideo w podsumowaniu). */
+export function Library({ collapsible = false }: { collapsible?: boolean }): React.JSX.Element {
   const library = usePanel((s) => s.app?.library ?? [])
   const activeId = usePanel((s) => s.app?.activeId ?? null)
   const [progress, setProgress] = useState<number | null>(null)
@@ -95,9 +97,27 @@ export function Library(): React.JSX.Element {
     await api(`/api/library/${item.id}`, { method: 'DELETE' }).catch((err) => setError(String(err)))
   }
 
+  const active = library.find((v) => v.id === activeId)
+  const summary = (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="h-5 w-8 shrink-0 overflow-hidden border bg-black">
+        {active?.thumb && (
+          <img src={url(active.thumb)} alt="" className="h-full w-full object-cover" />
+        )}
+      </div>
+      <span className={`truncate ${active ? 'text-fg' : 'text-muted'}`} title={active?.name}>
+        {active?.name ?? 'Brak aktywnego wideo'}
+      </span>
+    </div>
+  )
+
   return (
     <Section
-      title={`Biblioteka (${library.length})`}
+      title="Biblioteka"
+      index={1}
+      meta={`(${library.length})`}
+      collapsible={collapsible}
+      summary={summary}
       actions={
         <Button
           variant="primary"
@@ -120,7 +140,7 @@ export function Library(): React.JSX.Element {
         }}
       />
       <div
-        className={`space-y-1 rounded ${dragOver ? 'outline-2 outline-dashed outline-violet-500' : ''}`}
+        className={dragOver ? 'outline-1 outline-offset-4 outline-dotted outline-term-white' : ''}
         onDragOver={(e) => {
           e.preventDefault()
           setDragOver(true)
@@ -133,55 +153,72 @@ export function Library(): React.JSX.Element {
         }}
       >
         {progress !== null && (
-          <div className="h-1.5 overflow-hidden rounded bg-neutral-800">
-            <div
-              className="h-full bg-violet-500"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-        )}
-        {error && <div className="text-xs text-red-400">{error}</div>}
-        {library.length === 0 && (
-          <div className="rounded border border-dashed border-neutral-700 p-4 text-center text-xs text-neutral-500">
-            Przeciągnij tu pliki wideo (najlepiej H.264 1080p) albo kliknij „Dodaj”.
-          </div>
-        )}
-        {library.map((item) => (
           <div
-            key={item.id}
-            className={`group flex cursor-pointer items-center gap-2 rounded p-1 ${
-              item.id === activeId
-                ? 'bg-violet-900/40 ring-1 ring-violet-500'
-                : 'hover:bg-neutral-800'
-            }`}
-            onClick={() => selectVideo(item.id)}
+            className="mb-2 flex items-center gap-2 font-mono text-meta whitespace-nowrap"
+            role="progressbar"
+            aria-label="Wysyłanie plików"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
           >
-            <div className="h-10 w-16 shrink-0 overflow-hidden rounded bg-neutral-800">
-              {item.thumb && (
-                <img src={url(item.thumb)} alt="" className="h-full w-full object-cover" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs text-neutral-100" title={item.name}>
-                {item.name}
-              </div>
-              <div className="text-[10px] text-neutral-500">
-                {formatDuration(item.duration)} · {formatSize(item.size)}
-              </div>
-            </div>
-            <Button
-              variant="danger"
-              className="opacity-0 group-hover:opacity-100"
-              title="Usuń z dysku"
-              onClick={(e) => {
-                e.stopPropagation()
-                void remove(item)
-              }}
-            >
-              ✕
-            </Button>
+            <span className="min-w-0 flex-1 overflow-hidden">[{asciiBar(progress, 16)}]</span>
+            <span className="w-12 flex-none text-right tabular-nums">
+              {Math.round(progress * 100)}%
+            </span>
           </div>
-        ))}
+        )}
+        {error && <div className="mb-2 text-danger">{error}</div>}
+        {library.length === 0 && (
+          <AsciiBox>
+            Przeciągnij tu pliki wideo (najlepiej H.264 1080p) albo kliknij „Dodaj”.
+          </AsciiBox>
+        )}
+        <div className="rows">
+          {library.map((item) => {
+            const active = item.id === activeId
+            return (
+              <div
+                key={item.id}
+                className={`reveal-on-hover flex min-h-12 cursor-pointer items-center gap-2 p-2 ${
+                  active ? 'inv' : 'inv-hover'
+                }`}
+                aria-current={active || undefined}
+                onClick={() => selectVideo(item.id)}
+              >
+                <div className="h-10 w-16 shrink-0 overflow-hidden border bg-black">
+                  {item.thumb && (
+                    <img src={url(item.thumb)} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    {active && <span aria-hidden className="h-2 w-2 flex-none bg-current" />}
+                    <span className="truncate text-ui leading-[1.4] text-fg" title={item.name}>
+                      {item.name}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-meta text-muted">
+                    <span className="truncate">
+                      {formatDuration(item.duration)} / {formatSize(item.size)}
+                    </span>
+                    {active && <Tag className="bg-black text-term-green">live</Tag>}
+                  </div>
+                </div>
+                <Button
+                  variant="link"
+                  className="reveal btn-danger"
+                  title="Usuń z dysku"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void remove(item)
+                  }}
+                >
+                  ×
+                </Button>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </Section>
   )

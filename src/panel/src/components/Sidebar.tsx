@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ProjectInfo } from '@shared/types'
 import { api, postJson, url } from '../api'
-import { createLoopback, setAudioDevice, setFullscreen, usePanel } from '../store'
-import { Button, Section, selectClass } from './ui'
+import { TEMPLATES } from '@shared/templates'
+import { asciiBar } from '../ascii'
+import { termVar, type TermColor } from '../palette'
+import { commitGraph, createLoopback, setAudioDevice, setFullscreen, usePanel } from '../store'
+import { AsciiBox, Button, Section, Tag, selectClass } from './ui'
 
 export function Preview(): React.JSX.Element {
   const [on, setOn] = useState(true)
@@ -22,14 +25,15 @@ export function Preview(): React.JSX.Element {
   return (
     <Section
       title="Podgląd"
+      index={2}
       actions={
-        <Button variant="ghost" onClick={() => setOn(!on)}>
+        <Button variant="link" onClick={() => setOn(!on)}>
           {on ? 'wyłącz' : 'włącz'}
         </Button>
       }
     >
       {on ? (
-        <div className="aspect-video overflow-hidden rounded bg-black">
+        <div className="aspect-video overflow-hidden bg-black">
           <img
             src={url(`/api/preview.jpg?t=${tick}`)}
             alt="Podgląd wyjścia"
@@ -45,19 +49,22 @@ export function Preview(): React.JSX.Element {
           />
         </div>
       ) : (
-        <p className="text-xs text-neutral-500">Podgląd wyłączony.</p>
+        <p className="text-muted">Podgląd wyłączony.</p>
       )}
     </Section>
   )
 }
 
-const BARS = [
-  { key: 'bass', label: 'Bass', color: 'bg-violet-500' },
-  { key: 'mid', label: 'Mid', color: 'bg-fuchsia-500' },
-  { key: 'high', label: 'High', color: 'bg-cyan-400' },
-  { key: 'level', label: 'Level', color: 'bg-neutral-300' },
-  { key: 'beat', label: 'Beat', color: 'bg-amber-400' }
-] as const
+const CELLS = 24
+
+const BARS: { key: 'bass' | 'mid' | 'high' | 'level' | 'beat'; label: string; color: TermColor }[] =
+  [
+    { key: 'bass', label: 'Bass', color: 'red' },
+    { key: 'mid', label: 'Mid', color: 'yellow' },
+    { key: 'high', label: 'High', color: 'cyan' },
+    { key: 'level', label: 'Level', color: 'white' },
+    { key: 'beat', label: 'Beat', color: 'magenta' }
+  ]
 
 export function AudioPanel(): React.JSX.Element {
   const audio = usePanel((s) => s.audio)
@@ -67,22 +74,41 @@ export function AudioPanel(): React.JSX.Element {
     status.devices.length > 0 && !status.devices.some((d) => /monitor|loopback/i.test(d.label))
 
   return (
-    <Section title="Audio">
-      <div className="space-y-1.5">
-        {BARS.map((b) => (
-          <div key={b.key} className="flex items-center gap-2 text-[11px]">
-            <span className="w-10 text-neutral-400">{b.label}</span>
-            <div className="h-2 flex-1 overflow-hidden rounded bg-neutral-800">
-              <div
-                className={`h-full ${b.color}`}
-                style={{ width: `${Math.round(audio[b.key] * 100)}%` }}
-              />
+    <Section title="Audio" index={4}>
+      {/* Paski ASCII: pełne komórki w kolorze pasma, reszta tym samym kolorem przez znak ░. */}
+      <div className="space-y-1 font-mono text-meta" role="group" aria-label="Poziomy audio">
+        {BARS.map((b) => {
+          const value = audio[b.key]
+          const pct = Math.round(Math.min(1, Math.max(0, value)) * 100)
+          return (
+            <div
+              key={b.key}
+              className="flex items-center gap-2 whitespace-nowrap"
+              title={`${b.label}: ${pct}%`}
+            >
+              <span className="w-12 flex-none uppercase">{b.label}</span>
+              {b.key === 'beat' ? (
+                <span
+                  aria-hidden
+                  className={`h-3 w-3 flex-none border border-current ${value > 0.5 ? 'bg-current' : ''}`}
+                  style={{ color: termVar(b.color) }}
+                />
+              ) : null}
+              {/* Kolor pasma tylko na pasku (grafika); etykieta i liczba w term-white. */}
+              <span
+                aria-hidden
+                className="min-w-0 flex-1 overflow-hidden"
+                style={{ color: termVar(b.color) }}
+              >
+                {asciiBar(value, b.key === 'beat' ? CELLS - 3 : CELLS)}
+              </span>
+              <span className="w-8 flex-none text-right tabular-nums">{pct}</span>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
-      <label className="mt-3 block text-xs text-neutral-400">
-        Wejście
+      <label className="mt-4 block">
+        <span className="font-pixel uppercase">Wejście</span>
         <select
           className={selectClass}
           value={status.deviceId ?? ''}
@@ -96,15 +122,17 @@ export function AudioPanel(): React.JSX.Element {
           ))}
         </select>
       </label>
-      <div className="mt-1 text-[11px] text-neutral-500">Aktywne: {status.activeLabel ?? '–'}</div>
-      {status.error && <div className="mt-1 text-xs text-red-400">{status.error}</div>}
+      <div className="mt-1 font-mono text-meta text-muted">
+        AKTYWNE / {status.activeLabel ?? '–'}
+      </div>
+      {status.error && <div className="mt-1 text-danger">{status.error}</div>}
       {loopback.state !== 'unavailable' && (
-        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-neutral-400">
-          <span>
-            Loopback systemu:{' '}
-            <b className={loopback.state === 'on' ? 'text-emerald-400' : 'text-amber-300'}>
-              {loopback.state === 'on' ? 'aktywny' : 'brak'}
-            </b>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <span className="font-pixel uppercase">Loopback</span>
+            <Tag className={loopback.state === 'on' ? 'text-term-green' : 'text-muted'}>
+              {loopback.state === 'on' ? 'on' : 'off'}
+            </Tag>
           </span>
           <Button
             title="Tworzy wirtualne wejście z monitora bieżącego domyślnego wyjścia (pactl)"
@@ -114,19 +142,21 @@ export function AudioPanel(): React.JSX.Element {
           </Button>
         </div>
       )}
-      {loopback.error && <div className="mt-1 text-xs text-red-400">{loopback.error}</div>}
+      {loopback.error && <div className="mt-1 text-danger">{loopback.error}</div>}
       {noMonitor && loopback.state !== 'on' && (
-        <details className="mt-2 text-[11px] text-neutral-400">
-          <summary className="cursor-pointer text-amber-300">Nie widać dźwięku z systemu?</summary>
-          <p className="mt-1">Utwórz wirtualne wejście z monitora domyślnego wyjścia:</p>
-          <pre className="mt-1 overflow-x-auto rounded bg-neutral-950 p-2 text-[10px]">
+        <details className="mt-3 text-muted">
+          <summary className="link tap cursor-pointer text-fg">
+            Nie widać dźwięku z systemu?
+          </summary>
+          <p className="mt-2">Utwórz wirtualne wejście z monitora domyślnego wyjścia:</p>
+          <pre className="mt-2 overflow-x-auto border-l border-dotted py-1 pl-3 font-mono text-meta text-fg">
             {`pactl load-module module-remap-source \\
   master=$(pactl get-default-sink).monitor \\
   source_name=loopback \\
   source_properties=device.description=Loopback`}
           </pre>
-          <p className="mt-1">
-            Albo w pavucontrol → Nagrywanie przełącz Visualizer na „Monitor of …”.
+          <p className="mt-2">
+            Albo w pavucontrol {'->'} Nagrywanie przełącz Visualizer na „Monitor of …”.
           </p>
         </details>
       )}
@@ -134,15 +164,15 @@ export function AudioPanel(): React.JSX.Element {
   )
 }
 
-export function OutputPanel(): React.JSX.Element {
+export function OutputPanel({ collapsible = false }: { collapsible?: boolean }): React.JSX.Element {
   const output = usePanel((s) => s.app!.output)
   const [displayId, setDisplayId] = useState<number | null>(null)
   const chosen = output.displays.some((d) => d.id === displayId) ? displayId : null
 
   return (
-    <Section title="Wyjście">
-      <label className="block text-xs text-neutral-400">
-        Ekran
+    <Section title="Wyjście" index={5} collapsible={collapsible}>
+      <label className="block">
+        <span className="font-pixel uppercase">Ekran</span>
         <select
           className={selectClass}
           value={chosen ?? ''}
@@ -156,14 +186,14 @@ export function OutputPanel(): React.JSX.Element {
           ))}
         </select>
       </label>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <Button variant="primary" onClick={() => setFullscreen(true, chosen)}>
           Pełny ekran
         </Button>
         <Button disabled={!output.fullscreen} onClick={() => setFullscreen(false, null)}>
           Okno
         </Button>
-        <span className="text-[11px] text-neutral-500">
+        <span className="ml-auto font-mono text-meta text-muted uppercase">
           {output.fullscreen ? 'pełny ekran' : 'w oknie'}
         </span>
       </div>
@@ -171,7 +201,11 @@ export function OutputPanel(): React.JSX.Element {
   )
 }
 
-export function ProjectsPanel(): React.JSX.Element {
+export function ProjectsPanel({
+  collapsible = false
+}: {
+  collapsible?: boolean
+}): React.JSX.Element {
   const [projects, setProjects] = useState<ProjectInfo[]>([])
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -203,9 +237,11 @@ export function ProjectsPanel(): React.JSX.Element {
   return (
     <Section
       title="Projekty"
+      index={6}
+      collapsible={collapsible}
       actions={
         <Button
-          variant="ghost"
+          variant="link"
           title="Wczytaj plik .json"
           onClick={() => fileInput.current?.click()}
         >
@@ -232,34 +268,35 @@ export function ProjectsPanel(): React.JSX.Element {
         }}
       />
       <form
-        className="flex gap-1"
+        className="flex items-end gap-2"
         onSubmit={(e) => {
           e.preventDefault()
           const n = cleanName(name)
           if (n) void run(() => postJson<ProjectInfo[]>('/api/projects', { name: n }))
         }}
       >
-        <input
-          className="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs"
-          placeholder="Nazwa projektu"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="rounded bg-violet-600 px-2 text-xs font-medium text-white hover:bg-violet-500"
-        >
+        <label className="min-w-0 flex-1">
+          <span className="font-pixel text-muted uppercase">Nazwa projektu</span>
+          <input
+            className="field mt-1 block w-full"
+            placeholder="np. koncert"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <Button type="submit" variant="primary" className="min-h-8">
           Zapisz
-        </button>
+        </Button>
       </form>
-      {error && <div className="mt-1 text-xs text-red-400">{error}</div>}
-      <ul className="mt-2 space-y-1">
+      {error && <div className="mt-2 text-danger">{error}</div>}
+      <ul className="rows mt-3">
         {projects.map((p) => (
-          <li key={p.name} className="flex items-center gap-1 text-xs">
+          <li key={p.name} className="inv-hover flex items-center gap-1 py-1 pl-1">
             <span className="min-w-0 flex-1 truncate" title={new Date(p.savedAt).toLocaleString()}>
               {p.name}
             </span>
             <Button
+              variant="link"
               onClick={() =>
                 void run(() =>
                   api(`/api/projects/${encodeURIComponent(p.name)}/load`, { method: 'POST' })
@@ -269,14 +306,17 @@ export function ProjectsPanel(): React.JSX.Element {
               wczytaj
             </Button>
             <a
-              className="rounded px-2 py-1 text-neutral-300 hover:bg-neutral-800"
+              className="btn btn-link"
+              title="Pobierz .json"
               href={url(`/api/projects/${encodeURIComponent(p.name)}`)}
               download={`${p.name}.json`}
             >
               ↓
             </a>
             <Button
-              variant="danger"
+              variant="link"
+              className="btn-danger"
+              title="Usuń projekt"
               onClick={() => {
                 if (confirm(`Usunąć projekt „${p.name}”?`)) {
                   void run(() =>
@@ -287,14 +327,41 @@ export function ProjectsPanel(): React.JSX.Element {
                 }
               }}
             >
-              ✕
+              ×
             </Button>
           </li>
         ))}
-        {projects.length === 0 && (
-          <li className="text-xs text-neutral-500">Brak zapisanych projektów.</li>
-        )}
       </ul>
+      {projects.length === 0 && (
+        <div className="mt-3">
+          <AsciiBox>Brak zapisanych projektów.</AsciiBox>
+        </div>
+      )}
+    </Section>
+  )
+}
+
+export function TemplatesPanel({
+  collapsible = false
+}: {
+  collapsible?: boolean
+}): React.JSX.Element {
+  return (
+    <Section title="Szablony" index={3} collapsible={collapsible}>
+      <div className="rows">
+        {TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            title={t.description}
+            className="inv-hover block w-full px-2 py-2 text-left"
+            onClick={() => commitGraph(structuredClone(t.graph))}
+          >
+            <div className="text-fg">{t.name}</div>
+            <div className="mt-1 font-mono text-meta text-muted">{t.description}</div>
+          </button>
+        ))}
+      </div>
     </Section>
   )
 }

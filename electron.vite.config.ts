@@ -18,6 +18,10 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [react()]
+    plugins: [react()],
+    build: {
+      // Fonty zawsze jako pliki: CSP okna (font-src z default-src 'self') blokuje data:.
+      assetsInlineLimit: (file: string) => (/\.woff2?$/.test(file) ? false : undefined)
+    }
   }
 })

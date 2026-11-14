@@ -23,3 +23,5 @@ Jesteś właścicielem okna wizualizacji (`src/renderer/`) i panelu sterowania (
 
 ## Na koniec
 Uruchom `npm run typecheck`, `npm run lint` i `npm test`. W raporcie wypisz zmienione pliki i użyte metody `window.api`.
+
+Po zielonych komendach zrób commit swoich zmian według sekcji „Commity” w `CLAUDE.md`. Hash commita podaj w raporcie.

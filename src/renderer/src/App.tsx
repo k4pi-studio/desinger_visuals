@@ -3,6 +3,8 @@ import type { AppState } from '@shared/types'
 import { Engine } from './engine/renderer'
 
 const OVERLAY_MS = 8000
+// Linia ramki przycinana przez CSS do szerokości nakładki.
+const LINE = '─'.repeat(120)
 
 function App(): React.JSX.Element {
   const stageRef = useRef<HTMLDivElement>(null)
@@ -67,24 +69,42 @@ function App(): React.JSX.Element {
     <>
       <div className="stage" ref={stageRef} />
       <div className={`overlay${visible ? '' : ' hidden'}`}>
-        {error && <div className="error">Błąd: {error}</div>}
+        <div className="frame" aria-hidden>
+          <span>┌ </span>
+          <span className="title">VISUALIZER</span>
+          <span className="fill"> {LINE}</span>
+          <span>┐</span>
+        </div>
+        {error && <div className="error">BŁĄD / {error}</div>}
         {state && (
           <>
             <div>
-              Panel: <strong>{state.server.panelUrl}</strong>
+              <span className="label">PANEL /</span>{' '}
+              <span className="mono">{state.server.panelUrl}</span>
             </div>
             {state.server.lanUrls.map((url) => (
               <div key={url} className="muted">
-                LAN: {url}
+                <span className="label">LAN /</span> <span className="mono">{url}</span>
               </div>
             ))}
             {noVideo && <div>Dodaj wideo w panelu, żeby zacząć.</div>}
             <div className={audioError ? 'error' : 'muted'}>
-              Audio: {audioError ?? state.audio.activeLabel ?? 'łączenie…'}
+              <span className="label">AUDIO /</span>{' '}
+              {audioError ?? state.audio.activeLabel ?? 'łączenie…'}
             </div>
           </>
         )}
-        <div className="muted">F11 pełny ekran · P otwórz panel · F12 DevTools (dev)</div>
+        <div className="keys">
+          <span>
+            <span className="tag">F11</span> PEŁNY EKRAN
+          </span>
+          <span>
+            <span className="tag">P</span> PANEL
+          </span>
+          <span>
+            <span className="tag">F12</span> DEVTOOLS
+          </span>
+        </div>
       </div>
     </>
   )
