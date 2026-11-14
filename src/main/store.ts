@@ -171,7 +171,11 @@ export class AppStore {
   }
 
   timelineRemove(id: string): void {
-    this.setTimeline(removeItem(this.state.timeline, id))
+    const t = this.state.timeline
+    const wasCurrent = t.items[t.index]?.id === id
+    const next = removeItem(t, id)
+    // Usunięty grający element: przełącz na następny razem z jego klipem i grafem.
+    this.setTimeline(next, wasCurrent && next.playing)
   }
 
   timelineMove(id: string, to: number): void {

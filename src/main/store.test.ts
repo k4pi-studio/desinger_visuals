@@ -252,6 +252,20 @@ describe('AppStore – kolejka klipów', () => {
     ).toBe(0.9)
   })
 
+  it('usunięcie grającego elementu przełącza na następny razem z jego grafem i klipem', () => {
+    store.setGraph(withNode('first'))
+    store.timelineAdd('a')
+    store.setGraph(withNode('second'))
+    store.timelineAdd('b')
+    store.timelinePlay(true)
+    const [first, second] = store.get().timeline.items
+    store.timelineRemove(first.id)
+    expect(store.get().activeId).toBe('b')
+    expect(store.get().graph.nodes.some((n) => n.id === 'second')).toBe(true)
+    // efekty klipu b nie zostały nadpisane grafem usuniętego elementu
+    expect(store.get().timeline.items[0]).toEqual(second)
+  })
+
   it('remove/move/update przechodzą przez operacje kolejki', () => {
     store.timelineAdd('a')
     store.timelineAdd('b')
