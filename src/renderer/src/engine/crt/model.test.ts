@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   CircuitModel,
+  FlickerModel,
   SignalModel,
   echoUniforms,
   gunUniforms,
   tubeUniforms,
   type CircuitKnobs,
   type EchoKnobs,
+  type FlickerKnobs,
   type SignalKnobs,
   type TubeKnobs
 } from './model'
@@ -218,5 +220,49 @@ describe('tubeUniforms (CRT Tube: halacja, krzywa kineskopu, nasycenie)', () => 
     const o = tubeUniforms({ glow: 9, contrast: -2, color: 7 }, out)
     expect(o).toBe(out)
     expect(o).toEqual({ glowGain: 0.8, gamma: 0.8, saturation: 2 })
+  })
+})
+
+describe('FlickerModel (CRT Flicker: migotanie jasności)', () => {
+  const run = (k: FlickerKnobs, steps: number, dt: number, random = zero): number[] => {
+    const m = new FlickerModel()
+    const gains: number[] = []
+    for (let i = 0; i < steps; i++) gains.push(m.step(k, dt, random).gain)
+    return gains
+  }
+
+  it('Amount 0 = bez migotania', () => {
+    for (const g of run({ amount: 0, rate: 1, chaos: 1 }, 100, 1 / 60)) expect(g).toBe(1)
+  })
+
+  it('Rate: od 0,5 Hz do 20 Hz', () => {
+    const m = new FlickerModel()
+    expect(m.step({ amount: 1, rate: 0, chaos: 0 }, 0, zero).freq).toBeCloseTo(0.5)
+    expect(m.step({ amount: 1, rate: 1, chaos: 0 }, 0, zero).freq).toBeCloseTo(20)
+  })
+
+  it('Chaos 0: równe pulsowanie od pełnej jasności do czerni, okresowe', () => {
+    // 0,5 Hz → okres 2 s; 200 kroków po 10 ms = jeden okres
+    const g = run({ amount: 1, rate: 0, chaos: 0 }, 200, 0.01)
+    expect(Math.min(...g)).toBeLessThan(0.01)
+    expect(Math.max(...g)).toBeGreaterThan(0.99)
+    expect(g[199]).toBeGreaterThan(0.99)
+  })
+
+  it('Chaos 1: w każdym cyklu losowo – zanik albo prawie pełna jasność', () => {
+    const k = { amount: 1, rate: 1, chaos: 1 }
+    expect(run(k, 10, 0.1, zero).at(-1)).toBe(0)
+    expect(run(k, 10, 0.1, () => 0.99).at(-1)).toBeCloseTo(1 - 0.15 * 0.99)
+  })
+
+  it('gain zawsze w 0–1 dla wartości spoza zakresu, obiekt wyniku ten sam (bez alokacji)', () => {
+    const m = new FlickerModel()
+    const first = m.step({ amount: 5, rate: 9, chaos: -3 }, 0.013, one)
+    for (let i = 0; i < 50; i++) {
+      const o = m.step({ amount: 5, rate: 9, chaos: 7 }, 0.013, Math.random)
+      expect(o).toBe(first)
+      expect(o.gain).toBeGreaterThanOrEqual(0)
+      expect(o.gain).toBeLessThanOrEqual(1)
+    }
   })
 })

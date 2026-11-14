@@ -1,4 +1,4 @@
-// Node'y CRT (Guns, Circuit, Echo, Signal, Tube) w edytorze grafu jako analogowe efekty:
+// Node'y CRT (Guns, Circuit, Echo, Signal, Tube, Flicker) w edytorze grafu jako analogowe efekty:
 // jack nad każdym pokrętłem (wejście sygnału), wideo bokami, footswitch = bypass.
 
 import { Handle, Position } from '@xyflow/react'
@@ -24,7 +24,10 @@ const LABELS: Record<string, { short: string; led?: string }> = {
   chroma: { short: 'Chroma' },
   glow: { short: 'Glow' },
   contrast: { short: 'Contrast' },
-  color: { short: 'Color' }
+  color: { short: 'Color' },
+  amount: { short: 'Amount' },
+  rate: { short: 'Rate' },
+  chaos: { short: 'Chaos' }
 }
 
 const TITLES = {
@@ -32,7 +35,8 @@ const TITLES = {
   CRTCircuit: { name: 'CRT Circuit', panel: 'Circuit', sub: 'high voltage · yoke' },
   CRTEcho: { name: 'CRT Echo', panel: 'Echo', sub: 'cable reflections' },
   CRTSignal: { name: 'CRT Signal', panel: 'Signal', sub: 'hum · timebase · chroma' },
-  CRTTube: { name: 'CRT Tube', panel: 'Tube', sub: 'glass · phosphor' }
+  CRTTube: { name: 'CRT Tube', panel: 'Tube', sub: 'glass · phosphor' },
+  CRTFlicker: { name: 'CRT Flicker', panel: 'Flicker', sub: 'mains · lamp' }
 } as const satisfies Record<CrtType, { name: string; panel: string; sub: string }>
 
 interface KnobState {

@@ -16,6 +16,7 @@ export type NodeType =
   | 'CRTEcho'
   | 'CRTSignal'
   | 'CRTTube'
+  | 'CRTFlicker'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -157,6 +158,11 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('glow', 'Halacja (poświata szkła)', 0, 1, 0.005, 0.3),
     num('contrast', 'Krzywa kineskopu', 0, 1, 0.005, 0.5),
     num('color', 'Nasycenie luminoforów', 0, 1, 0.005, 0.5)
+  ]),
+  CRTFlicker: filter('CRTFlicker', 'CRT Flicker', [
+    num('amount', 'Głębokość migotania', 0, 1, 0.005, 0),
+    num('rate', 'Częstotliwość (0,5–20 Hz)', 0, 1, 0.005, 0.5),
+    num('chaos', 'Nieregularność', 0, 1, 0.005, 0.3)
   ]),
   AudioIn: {
     type: 'AudioIn',

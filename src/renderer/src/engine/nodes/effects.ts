@@ -21,7 +21,8 @@ import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
 import { SignalEffect } from '../crt/SignalEffect'
 import { CrtTubePass } from '../crt/CrtTubePass'
-import { SignalModel, echoUniforms, gunUniforms, tubeUniforms } from '../crt/model'
+import { FlickerEffect } from '../crt/FlickerEffect'
+import { FlickerModel, SignalModel, echoUniforms, gunUniforms, tubeUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
 
@@ -182,6 +183,20 @@ export function createEffect(type: NodeType): EffectHandle | null {
           knobs.hdef = get('hdef')
           knobs.vdef = get('vdef')
           pass.setKnobs(knobs, dt)
+        }
+      }
+    }
+    case 'CRTFlicker': {
+      const effect = new FlickerEffect()
+      const model = new FlickerModel()
+      const knobs = { amount: 0, rate: 0.5, chaos: 0.3 }
+      return {
+        effect,
+        apply(get, dt) {
+          knobs.amount = get('amount')
+          knobs.rate = get('rate')
+          knobs.chaos = get('chaos')
+          effect.setGain(model.step(knobs, dt, Math.random).gain)
         }
       }
     }

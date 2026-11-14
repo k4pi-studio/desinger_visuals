@@ -5,7 +5,14 @@ import { clamp, findNumberParam, type NumberParamDef } from '@shared/nodes'
 import type { AudioLevels, Graph, GraphEdge } from '@shared/types'
 
 /** Node'y rysowane jako analogowe panele CRT (po 3 pokrętła). */
-export const CRT_TYPES = ['CRTGuns', 'CRTCircuit', 'CRTEcho', 'CRTSignal', 'CRTTube'] as const
+export const CRT_TYPES = [
+  'CRTGuns',
+  'CRTCircuit',
+  'CRTEcho',
+  'CRTSignal',
+  'CRTTube',
+  'CRTFlicker'
+] as const
 export type CrtType = (typeof CRT_TYPES)[number]
 export const isCrtType = (t: string): t is CrtType => (CRT_TYPES as readonly string[]).includes(t)
 

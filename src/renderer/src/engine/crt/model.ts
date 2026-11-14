@@ -257,3 +257,52 @@ export function tubeUniforms(
   out.saturation = c <= 0.5 ? 2.5 * c : 1.25 + 1.5 * (c - 0.5)
   return out
 }
+
+export interface FlickerKnobs {
+  amount: number
+  rate: number
+  chaos: number
+}
+
+export interface FlickerUniforms {
+  /** Mnożnik jasności klatki, 0…1. */
+  gain: number
+  /** Częstotliwość migotania [Hz]. */
+  freq: number
+}
+
+const FLICKER_F_MIN = 0.5
+const FLICKER_F_RATIO = 40 // 0,5 Hz · 40 = 20 Hz
+/** Szansa na zanik w cyklu przy pełnym Chaos (jak psująca się świetlówka). */
+const FLICKER_DROP = 0.35
+/** Drobne wahanie jasności w cyklach bez zaniku. */
+const FLICKER_WOBBLE = 0.15
+
+/**
+ * CRT Flicker: migotanie jasności. Chaos 0 to równe pulsowanie (kosinus),
+ * Chaos 1 to cykle losowane osobno: zanik do czerni albo prawie pełna jasność.
+ */
+export class FlickerModel {
+  readonly out: FlickerUniforms = { gain: 1, freq: FLICKER_F_MIN }
+  private phase = 0
+  private cycle = 0
+  private cycleRand = 1
+
+  step(k: FlickerKnobs, dt: number, random: () => number): FlickerUniforms {
+    const o = this.out
+    const chaos = unit(k.chaos)
+    o.freq = FLICKER_F_MIN * Math.pow(FLICKER_F_RATIO, unit(k.rate))
+    this.phase += o.freq * Math.max(dt, 0)
+    const cycle = Math.floor(this.phase)
+    if (cycle !== this.cycle) {
+      this.cycle = cycle
+      this.cycleRand = random()
+    }
+    if (this.phase > 1e6) this.phase -= cycle // bez utraty precyzji w długich setach
+    const regular = 0.5 - 0.5 * Math.cos(2 * Math.PI * (this.phase - Math.floor(this.phase)))
+    const r = this.cycleRand
+    const chaotic = r < FLICKER_DROP ? 1 : FLICKER_WOBBLE * r
+    o.gain = 1 - unit(k.amount) * ((1 - chaos) * regular + chaos * chaotic)
+    return o
+  }
+}

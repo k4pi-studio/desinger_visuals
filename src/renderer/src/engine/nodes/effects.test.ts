@@ -17,6 +17,7 @@ import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
 import { SignalEffect } from '../crt/SignalEffect'
 import { CrtTubePass } from '../crt/CrtTubePass'
+import { FlickerEffect } from '../crt/FlickerEffect'
 import { createEffect, type EffectHandle } from './effects'
 
 /** Getter jak w silniku: wartości z mapy, reszta z domyślnych. */
@@ -147,6 +148,14 @@ describe('mapowanie parametrów', () => {
     handle.apply(getter({ hv: 0.5, hdef: 0.5, vdef: 0 }), 1 / 60)
     expect((handle.pass as CrtCircuitPass).model.out.scaleY).toBeLessThanOrEqual(0.005)
     handle.pass!.dispose()
+  })
+
+  it('CRTFlicker: Amount 0 = gain 1, Amount 1 przy Chaos 0 ściemnia w cyklu', () => {
+    const { handle, effect } = make('CRTFlicker', FlickerEffect)
+    handle.apply(getter({ amount: 0, rate: 0.5, chaos: 0 }), 0)
+    expect(effect.uniforms.get('gain')!.value).toBe(1)
+    handle.apply(getter({ amount: 1, rate: 0, chaos: 0 }), 1)
+    expect(effect.uniforms.get('gain')!.value).toBeLessThan(0.5)
   })
 
   it('CRTTube: własne przejście, pokrętła → uniformy', () => {
