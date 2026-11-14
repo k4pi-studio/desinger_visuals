@@ -11,6 +11,7 @@ export type NodeType =
   | 'Glitch'
   | 'Noise'
   | 'Vignette'
+  | 'Mirror'
   | 'CRTGuns'
   | 'CRTCircuit'
   | 'CRTEcho'
@@ -134,6 +135,7 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('offset', 'Rozmiar', 0, 1, 0.01, 0.35),
     num('darkness', 'Ciemność', 0, 1, 0.01, 0.6)
   ]),
+  Mirror: filter('Mirror', 'Mirror', [num('angle', 'Kąt osi odbicia (°)', 0, 360, 1, 90)]),
   CRTGuns: filter('CRTGuns', 'CRT Guns', [
     num('red', 'Działo R', 0, 1, 0.005, 0.5),
     num('green', 'Działo G', 0, 1, 0.005, 0.5),

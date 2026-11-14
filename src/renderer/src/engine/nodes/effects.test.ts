@@ -11,7 +11,7 @@ import {
   VignetteEffect
 } from 'postprocessing'
 import { FILTER_TYPES, NODE_TYPES, NODE_DEFS } from '@shared/nodes'
-import { Vector3 } from 'three'
+import { Vector2, Vector3 } from 'three'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
@@ -19,6 +19,7 @@ import { SignalEffect } from '../crt/SignalEffect'
 import { CrtTubePass } from '../crt/CrtTubePass'
 import { FlickerEffect } from '../crt/FlickerEffect'
 import { createEffect, type EffectHandle } from './effects'
+import { MirrorEffect, mirrorNormal } from './MirrorEffect'
 
 /** Getter jak w silniku: wartości z mapy, reszta z domyślnych. */
 const getter =
@@ -116,6 +117,25 @@ describe('mapowanie parametrów', () => {
     handle.apply(getter({ offset: 0.5, darkness: 0.8 }), 1 / 60)
     expect(effect.offset).toBeCloseTo(0.5)
     expect(effect.darkness).toBeCloseTo(0.8)
+  })
+
+  it('Mirror: kąt osi → normalna strony, która zostaje', () => {
+    const { handle, effect } = make('Mirror', MirrorEffect)
+    handle.apply(getter({ angle: 90 }), 1 / 60)
+    const n = effect.uniforms.get('normal')!.value as Vector2
+    // oś pionowa: zostaje lewa połowa (x < 0), odbita na prawą
+    expect(n.x).toBeCloseTo(-1)
+    expect(n.y).toBeCloseTo(0)
+  })
+
+  it('mirrorNormal: 0° = oś pozioma (góra na dół), 45° = przekątna', () => {
+    const out = new Vector2()
+    expect(mirrorNormal(0, out)).toBe(out)
+    expect(out.x).toBeCloseTo(0)
+    expect(out.y).toBeCloseTo(1)
+    mirrorNormal(45, out)
+    expect(out.x).toBeCloseTo(-Math.SQRT1_2)
+    expect(out.y).toBeCloseTo(Math.SQRT1_2)
   })
 
   it('CRTGuns: napięcia dział → uniformy', () => {

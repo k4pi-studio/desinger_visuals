@@ -96,6 +96,23 @@ describe('funkcje pomocnicze', () => {
   })
 })
 
+describe('Mirror', () => {
+  it('filtr z kątem osi odbicia 0–360°, domyślnie 90° (lewo ↔ prawo)', () => {
+    expect(NODE_DEFS.Mirror.params).toEqual([
+      {
+        key: 'angle',
+        label: 'Kąt osi odbicia (°)',
+        kind: 'number',
+        min: 0,
+        max: 360,
+        step: 1,
+        default: 90
+      }
+    ])
+    expect(FILTER_TYPES).toContain('Mirror')
+  })
+})
+
 describe('node’y CRT', () => {
   it('CRTGuns: trzy działa 0–1, 0,5 = sprawne', () => {
     const params = NODE_DEFS.CRTGuns.params
