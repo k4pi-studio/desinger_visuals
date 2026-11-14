@@ -24,3 +24,5 @@ Jesteś właścicielem narzędzi i konfiguracji projektu.
 
 ## Na koniec
 Uruchom `npm run typecheck`, `npm run lint`, `npm test` i `npm run build`. W raporcie wypisz dodane/zmienione zależności z wersjami i powód.
+
+Po zielonych komendach zrób commit swoich zmian według sekcji „Commity” w `CLAUDE.md`. Hash commita podaj w raporcie.

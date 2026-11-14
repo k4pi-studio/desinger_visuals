@@ -1,56 +1,57 @@
 // Wygląd node'a w edytorze: wejścia po lewej, wyjścia po prawej.
-// Fiolet = obraz, cyjan = sygnał (audio, LFO, Math).
+// Ciągły kabel = obraz, kropkowany = sygnał (audio, LFO, Math);
+// pełny kwadrat = obraz, pusty = sygnał (ramka w kolorze pasma audio).
 
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { NODE_DEFS, VIDEO_IN, VIDEO_OUT } from '@shared/nodes'
 import type { GraphNode } from '@shared/types'
+import { CATEGORY_TAG, lineVar, portColor } from '../palette'
 import { usePanel } from '../store'
 
 export type VzNode = Node<{ node: GraphNode }, 'vz'>
 
-const VIDEO = '#a78bfa'
-const SIGNAL = '#22d3ee'
-
-const header = {
-  source: 'bg-emerald-700',
-  filter: 'bg-violet-700',
-  control: 'bg-cyan-800',
-  output: 'bg-amber-700'
-} as const
+type Kind = 'video' | 'signal'
 
 function Row({
   label,
   value,
   input,
   output,
+  kind,
   color
 }: {
   label: string
   value?: string
   input?: string
   output?: string
-  color: string
+  kind: Kind
+  /** Ramka uchwytu sygnału (kolor pasma audio). */
+  color?: string
 }): React.JSX.Element {
+  const handleClass = kind === 'video' ? 'vz-handle-video' : 'vz-handle-signal'
+  const style = color ? ({ '--handle-color': color } as React.CSSProperties) : undefined
   return (
     <div
-      className={`relative flex items-center justify-between gap-2 px-3 py-0.5 ${output ? 'flex-row-reverse' : ''}`}
+      className={`relative flex items-center justify-between gap-2 px-3 leading-5 ${output ? 'flex-row-reverse' : ''}`}
     >
       {input && (
         <Handle
           type="target"
           position={Position.Left}
           id={input}
-          style={{ background: color, left: -5 }}
+          className={handleClass}
+          style={style}
         />
       )}
-      <span className="text-neutral-300">{label}</span>
-      {value !== undefined && <span className="tabular-nums text-neutral-500">{value}</span>}
+      <span className="truncate">{label}</span>
+      {value !== undefined && <span className="font-mono tabular-nums text-muted">{value}</span>}
       {output && (
         <Handle
           type="source"
           position={Position.Right}
           id={output}
-          style={{ background: color, right: -5 }}
+          className={handleClass}
+          style={style}
         />
       )}
     </div>
@@ -69,17 +70,17 @@ export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Eleme
   const node = data.node
   const def = NODE_DEFS[node.type]
   const deleteMode = usePanel((s) => s.graphMode === 'delete')
-  const border = deleteMode
+  const frame = deleteMode
     ? node.type === 'Output'
-      ? 'cursor-not-allowed border-neutral-700'
-      : 'cursor-pointer border-neutral-700 hover:border-red-500 hover:ring-2 hover:ring-red-500/60'
+      ? 'cursor-not-allowed border-muted'
+      : 'cursor-pointer border-muted vz-node-delete'
     : selected
-      ? 'border-white'
-      : 'border-neutral-700'
+      ? 'border-term-bright-white'
+      : 'border-muted'
   return (
     <div
-      className={`w-52 overflow-visible rounded-md border bg-neutral-900 text-[11px] shadow-lg ${border} ${
-        node.bypass ? 'opacity-50' : ''
+      className={`w-52 overflow-visible border bg-black text-meta ${frame} ${
+        node.bypass ? 'text-muted' : ''
       }`}
       title={
         deleteMode
@@ -90,15 +91,16 @@ export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Eleme
       }
     >
       <div
-        className={`rounded-t-md px-3 py-1 text-xs font-semibold text-white ${header[def.category]}`}
+        className={`flex items-center gap-2 border-b border-dotted px-3 py-1 ${selected && !deleteMode ? 'inv' : ''}`}
       >
-        {def.label}
-        <span className="ml-2 font-normal text-white/60">{node.id}</span>
+        <span className="min-w-0 flex-1 truncate font-pixel text-ui">{def.label}</span>
+        <span className="font-mono text-muted">{node.id}</span>
+        <span className="tag">{CATEGORY_TAG[def.category]}</span>
       </div>
       <div className="py-1">
-        {def.videoIn && <Row label="obraz" input={VIDEO_IN} color={VIDEO} />}
+        {def.videoIn && <Row label="obraz" input={VIDEO_IN} kind="video" />}
         {def.signalIn.map((port) => (
-          <Row key={port} label={port} input={port} color={SIGNAL} />
+          <Row key={port} label={port} input={port} kind="signal" />
         ))}
         {def.params.map((p) => (
           <Row
@@ -106,12 +108,18 @@ export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Eleme
             label={p.label}
             value={format(node.params[p.key])}
             input={p.kind === 'number' ? p.key : undefined}
-            color={SIGNAL}
+            kind="signal"
           />
         ))}
-        {def.videoOut && <Row label="obraz" output={VIDEO_OUT} color={VIDEO} />}
+        {def.videoOut && <Row label="obraz" output={VIDEO_OUT} kind="video" />}
         {def.signalOut.map((port) => (
-          <Row key={port} label={port} output={port} color={SIGNAL} />
+          <Row
+            key={port}
+            label={port}
+            output={port}
+            kind="signal"
+            color={lineVar(portColor(node.type, port))}
+          />
         ))}
       </div>
     </div>

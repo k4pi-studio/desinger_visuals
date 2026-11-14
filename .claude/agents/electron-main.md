@@ -25,3 +25,5 @@ Nie zmieniasz `src/renderer/`. Jeśli kontrakt IPC (preload, typy) wymaga zmiany
 
 ## Na koniec
 Uruchom `npm run typecheck:node`, `npm run lint` i `npm test`. W raporcie wypisz zmienione pliki, nowe/zmienione kanały IPC i to, czego oczekujesz od innych obszarów.
+
+Po zielonych komendach zrób commit swoich zmian według sekcji „Commity” w `CLAUDE.md`. Hash commita podaj w raporcie.

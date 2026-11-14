@@ -1,27 +1,25 @@
-// Karta node'a z parametrami. Używana w widoku „Efekty” i w inspektorze grafu.
+// Blok node'a z parametrami. Używany w widoku „Efekty” i w inspektorze grafu.
+// Nagłówek `NN / NAZWA [FX] id`, pod nim wszystkie parametry pod jedną lewą linią.
 
 import type { ReactNode } from 'react'
 import { connect, disconnect, incomingEdge, portRef, updateEdge } from '@shared/graph'
 import { NODE_DEFS, type ParamDef } from '@shared/nodes'
 import type { Graph, GraphNode } from '@shared/types'
+import { CATEGORY_TAG, signalColor, textVar } from '../palette'
 import { commitGraph, defaultBinding, setParamValue, usePanel } from '../store'
-import { Button, NumberField, Slider, selectClass } from './ui'
+import { Button, NumberField, Slider, Tag, selectClass } from './ui'
 
-const categoryColor = {
-  source: 'border-l-emerald-500',
-  filter: 'border-l-violet-500',
-  control: 'border-l-cyan-500',
-  output: 'border-l-amber-500'
-} as const
+/** Formuła podpiętego sygnału, pokazywana w `title` pól i raz w „Sterowaniu”. */
+export const BINDING_FORMULA = 'wartość = sygnał × skala + offset'
 
-/** Wszystkie wyjścia sygnałów w grafie, np. „Audio (a1) · bass”. */
+/** Wszystkie wyjścia sygnałów w grafie, np. „Audio (a1) / bass”. */
 function signalSources(graph: Graph, exclude: string): { ref: string; label: string }[] {
   return graph.nodes
     .filter((n) => n.id !== exclude)
     .flatMap((n) =>
       NODE_DEFS[n.type].signalOut.map((port) => ({
         ref: portRef(n.id, port),
-        label: `${NODE_DEFS[n.type].label} (${n.id}) · ${port}`
+        label: `${NODE_DEFS[n.type].label} (${n.id}) / ${port}`
       }))
     )
 }
@@ -40,7 +38,7 @@ function ParamRow({
 
   if (def.kind === 'boolean') {
     return (
-      <label className="flex items-center gap-2 text-xs text-neutral-300">
+      <label className="tap flex items-center gap-2 text-muted">
         <input
           type="checkbox"
           checked={value === true}
@@ -53,10 +51,10 @@ function ParamRow({
 
   if (def.kind === 'select') {
     return (
-      <label className="block text-xs text-neutral-400">
+      <label className="block text-muted">
         {def.label}
         <select
-          className={selectClass}
+          className={`${selectClass} text-fg`}
           value={typeof value === 'number' ? value : def.default}
           onChange={(e) => setParamValue(node.id, def.key, Number(e.target.value))}
         >
@@ -72,10 +70,10 @@ function ParamRow({
 
   if (def.kind === 'video') {
     return (
-      <label className="block text-xs text-neutral-400">
+      <label className="block text-muted">
         {def.label}
         <select
-          className={selectClass}
+          className={`${selectClass} text-fg`}
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => setParamValue(node.id, def.key, e.target.value || null)}
         >
@@ -94,74 +92,95 @@ function ParamRow({
   const edge = incomingEdge(graph, to)
   const sources = signalSources(graph, node.id)
 
+  // Podpięty: wiersz 1 = etykieta + źródło + odepnij, wiersz 2 = skala, offset, zakres.
   if (edge) {
     const source = sources.find((s) => s.ref === edge.from)
     return (
-      <div className="rounded border border-cyan-900/60 bg-cyan-950/20 p-2">
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-neutral-300">{def.label}</span>
-          <Button variant="ghost" onClick={() => commitGraph(disconnect(graph, to))}>
+      <div>
+        <div className="flex flex-wrap items-center gap-x-2">
+          <span className="text-muted">{def.label}</span>
+          <span
+            className="min-w-0 break-all"
+            style={{ color: textVar(signalColor(graph, edge.from)) }}
+          >
+            {'<-'} {source?.label ?? edge.from}
+          </span>
+          <Button
+            variant="link"
+            className="ml-auto"
+            onClick={() => commitGraph(disconnect(graph, to))}
+          >
             odepnij
           </Button>
         </div>
-        <div className="mb-1 text-xs text-cyan-300">← {source?.label ?? edge.from}</div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <NumberField
             label="×"
             step={0.05}
+            title={`Skala: ${BINDING_FORMULA}`}
             value={edge.scale ?? 1}
             onChange={(scale) => commitGraph(updateEdge(graph, to, { scale }))}
           />
           <NumberField
             label="+"
             step={0.01}
+            title={`Offset: ${BINDING_FORMULA}`}
             value={edge.offset ?? 0}
             onChange={(offset) => commitGraph(updateEdge(graph, to, { offset }))}
           />
-        </div>
-        <div className="mt-1 text-[10px] text-neutral-500">
-          wartość = sygnał × skala + offset, w zakresie {def.min}…{def.max}
+          <span className="text-muted" title="Zakres parametru">
+            {def.min}…{def.max}
+          </span>
         </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <Slider
-        label={def.label}
-        value={typeof value === 'number' ? value : def.default}
-        min={def.min}
-        max={def.max}
-        step={def.step}
-        onChange={(v) => setParamValue(node.id, def.key, v)}
-      />
-      {sources.length > 0 && (
-        <select
-          className="mt-0.5 w-full rounded bg-transparent text-[11px] text-neutral-500 hover:text-cyan-300"
-          value=""
-          onChange={(e) => {
-            const from = e.target.value
-            if (from) commitGraph(connect(graph, { from, to, ...defaultBinding(graph, to) }))
-          }}
-        >
-          <option value="">⚡ podepnij sygnał…</option>
-          {sources.map((s) => (
-            <option key={s.ref} value={s.ref}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
+    <Slider
+      label={def.label}
+      value={typeof value === 'number' ? value : def.default}
+      min={def.min}
+      max={def.max}
+      step={def.step}
+      onChange={(v) => setParamValue(node.id, def.key, v)}
+      extra={
+        sources.length > 0 && (
+          <select
+            className="sig-select"
+            title="podepnij sygnał"
+            aria-label={`Podepnij sygnał pod: ${def.label}`}
+            value=""
+            onChange={(e) => {
+              const from = e.target.value
+              if (from) commitGraph(connect(graph, { from, to, ...defaultBinding(graph, to) }))
+            }}
+          >
+            <option value="">~</option>
+            {sources.map((s) => (
+              <option
+                key={s.ref}
+                value={s.ref}
+                style={{ color: textVar(signalColor(graph, s.ref)) }}
+              >
+                {s.label}
+              </option>
+            ))}
+          </select>
+        )
+      }
+    />
   )
 }
 
 export function NodeCard({
   node,
+  index,
   actions
 }: {
   node: GraphNode
+  /** Pozycja w łańcuchu: nagłówek `02 / GLITCH`. */
+  index?: number
   actions?: ReactNode
 }): React.JSX.Element {
   const graph = usePanel((s) => s.app!.graph)
@@ -169,26 +188,32 @@ export function NodeCard({
   const signalInputs = def.signalIn.map((port) => {
     const edge = incomingEdge(graph, portRef(node.id, port))
     return (
-      <div key={port} className="text-xs text-neutral-400">
-        wejście <b>{port}</b>:{' '}
-        {edge ? <span className="text-cyan-300">← {edge.from}</span> : 'niepodłączone'}
+      <div key={port} className="text-muted">
+        wejście {port}:{' '}
+        {edge ? (
+          <span style={{ color: textVar(signalColor(graph, edge.from)) }}>
+            {'<-'} {edge.from}
+          </span>
+        ) : (
+          'niepodłączone'
+        )}
       </div>
     )
   })
 
   return (
-    <div
-      className={`rounded-md border border-neutral-800 border-l-4 bg-neutral-900 ${categoryColor[def.category]} ${node.bypass ? 'opacity-50' : ''}`}
-    >
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <div>
-          <div className="text-sm font-medium text-neutral-100">{def.label}</div>
-          <div className="text-[10px] text-neutral-500">{node.id}</div>
-        </div>
-        <div className="flex flex-wrap justify-end gap-1">{actions}</div>
+    <div className={`border-t border-line-dim pt-3 ${node.bypass ? 'is-off' : ''}`}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <h4 className="min-w-0 truncate font-pixel text-title text-fg uppercase">
+          {index !== undefined && `${String(index).padStart(2, '0')} / `}
+          {def.label}
+        </h4>
+        <Tag className="text-muted">{CATEGORY_TAG[def.category]}</Tag>
+        <span className="text-meta text-muted">{node.id}</span>
+        {actions && <div className="ml-auto flex flex-wrap items-center gap-1">{actions}</div>}
       </div>
       {(def.params.length > 0 || signalInputs.length > 0) && (
-        <div className="space-y-2 border-t border-neutral-800 px-3 py-2">
+        <div className="mt-3 space-y-3 border-l border-line-dim pl-3">
           {signalInputs}
           {def.params.map((p) => (
             <ParamRow key={p.key} node={node} def={p} graph={graph} />

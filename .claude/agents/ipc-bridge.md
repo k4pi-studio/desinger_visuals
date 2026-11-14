@@ -22,3 +22,5 @@ Jesteś właścicielem protokołu: `src/shared/types.ts` (`ClientMessage`, `Serv
 
 ## Na koniec
 Uruchom `npm run typecheck` i `npm run lint`. W raporcie podaj dokładny kontrakt każdego kanału (nazwa, argumenty, wynik), żeby `electron-main` i `react-ui` mogli go zaimplementować bez zgadywania.
+
+Po zielonych komendach zrób commit swoich zmian według sekcji „Commity” w `CLAUDE.md`. Hash commita podaj w raporcie.

@@ -191,22 +191,30 @@ export function addNode(graph: Graph, node: GraphNode): Graph {
 }
 
 /**
+ * Wypina node z łańcucha obrazu: usuwa kabel do jego wejścia obrazu i kable z jego
+ * wyjścia obrazu, a poprzednika łączy z dawnymi odbiorcami, żeby łańcuch się nie przerwał.
+ * Gdy node nie ma wejścia obrazu, nie ma czego naprawiać: dawni odbiorcy zostają bez
+ * wejścia (świadomie, np. przy przenoszeniu luźnego filtra w inne miejsce).
+ */
+export function detachVideo(graph: Graph, id: string): Graph {
+  const inRef = portRef(id, VIDEO_IN)
+  const outRef = portRef(id, VIDEO_OUT)
+  const incoming = incomingEdge(graph, inRef)
+  const outgoing = graph.edges.filter((e) => e.from === outRef)
+  if (!incoming && outgoing.length === 0) return graph
+  const edges = graph.edges.filter((e) => e.to !== inRef && e.from !== outRef)
+  if (incoming) for (const e of outgoing) edges.push({ from: incoming.from, to: e.to })
+  return { ...graph, edges }
+}
+
+/**
  * Usuwa node. Z `heal` łączy jego wejście obrazu z odbiorcami jego wyjścia,
  * żeby łańcuch efektów się nie przerwał.
  */
 export function removeNode(graph: Graph, id: string, heal = false): Graph {
-  let edges = graph.edges
-  if (heal) {
-    const incoming = incomingEdge(graph, portRef(id, VIDEO_IN))
-    if (incoming) {
-      const healed = graph.edges
-        .filter((e) => e.from === portRef(id, VIDEO_OUT))
-        .map((e) => ({ from: incoming.from, to: e.to }))
-      edges = [...edges, ...healed]
-    }
-  }
-  edges = edges.filter((e) => splitPort(e.from).node !== id && splitPort(e.to).node !== id)
-  return { ...graph, nodes: graph.nodes.filter((n) => n.id !== id), edges }
+  const g = heal ? detachVideo(graph, id) : graph
+  const edges = g.edges.filter((e) => splitPort(e.from).node !== id && splitPort(e.to).node !== id)
+  return { ...g, nodes: g.nodes.filter((n) => n.id !== id), edges }
 }
 
 /**
@@ -271,6 +279,145 @@ export function appendFilter(graph: Graph, type: NodeType): Graph {
     next = updateNode(next, chain.output.id, { position: { x: anchor.x + 240, y: anchor.y } })
   }
   return relinkChain(next, chain, [...chain.filters, node])
+}
+
+/** Poziomy krok między node'ami: szerokość node'a (208 px) plus odstęp. */
+export const NODE_STEP = 280
+
+const isFilterType = (type: NodeType): boolean =>
+  NODE_DEFS[type].videoIn && NODE_DEFS[type].videoOut
+
+/** Pozycja node'a; bez zapisanej pozycji ta sama, co w edytorze (kolejne kolumny). */
+function positionOf(graph: Graph, node: GraphNode): { x: number; y: number } {
+  return node.position ?? { x: graph.nodes.indexOf(node) * 240, y: 0 }
+}
+
+/**
+ * Wpina filtr w istniejący kabel obrazu `X.video → edgeTo`. Najpierw wypina go
+ * z dotychczasowego miejsca (z naprawą łańcucha). Zwraca graf bez zmian, gdy node nie
+ * jest filtrem, kabel nie jest kablem obrazu, kabel dotyczy samego node'a albo powstałby cykl.
+ */
+export function spliceIntoEdge(graph: Graph, nodeId: string, edgeTo: string): Graph {
+  const node = graph.nodes.find((n) => n.id === nodeId)
+  if (!node || !isFilterType(node.type)) return graph
+  const edge = incomingEdge(graph, edgeTo)
+  if (!edge || edgeKind(graph, edge) !== 'video') return graph
+  if (splitPort(edge.from).node === nodeId || splitPort(edgeTo).node === nodeId) return graph
+
+  const detached = detachVideo(graph, nodeId)
+  const withIn = connect(detached, { from: edge.from, to: portRef(nodeId, VIDEO_IN) })
+  if (withIn === detached) return graph
+  const withOut = connect(withIn, { from: portRef(nodeId, VIDEO_OUT), to: edgeTo })
+  return withOut === withIn ? graph : withOut
+}
+
+/** Node'y osiągalne kablami obrazu od `start` (bez niego). */
+function videoDownstream(graph: Graph, start: string): Set<string> {
+  const seen = new Set<string>()
+  const stack = [start]
+  while (stack.length > 0) {
+    const out = portRef(stack.pop()!, VIDEO_OUT)
+    for (const e of graph.edges) {
+      if (e.from !== out) continue
+      const t = splitPort(e.to).node
+      if (t === start || seen.has(t)) continue
+      seen.add(t)
+      stack.push(t)
+    }
+  }
+  return seen
+}
+
+/**
+ * Dodaje filtr do łańcucha obrazu. Gdy `after` ma wyjście obrazu, nowy node staje za nim
+ * i przejmuje wszystkie jego wyjściowe kable obrazu. W innym przypadku wpina się przed
+ * wyjściem (Output). Węzły w dół łańcucha przesuwają się w prawo tylko o tyle, ile
+ * brakuje do odstępu `NODE_STEP`.
+ */
+export function insertFilter(
+  graph: Graph,
+  type: NodeType,
+  after: string | null
+): { graph: Graph; id: string } {
+  const anchor = after ? graph.nodes.find((n) => n.id === after) : undefined
+  const output = graph.nodes.find((n) => n.type === 'Output')
+
+  let from: string | null = null
+  let targets: string[] = []
+  let position = { x: 0, y: 0 }
+  if (anchor && NODE_DEFS[anchor.type].videoOut) {
+    from = portRef(anchor.id, VIDEO_OUT)
+    const out = from
+    targets = graph.edges.filter((e) => e.from === out).map((e) => e.to)
+    const p = positionOf(graph, anchor)
+    position = { x: p.x + NODE_STEP, y: p.y }
+  } else if (output) {
+    const outIn = portRef(output.id, VIDEO_IN)
+    targets = [outIn]
+    const incoming = incomingEdge(graph, outIn)
+    const prev = incoming && graph.nodes.find((n) => n.id === splitPort(incoming.from).node)
+    if (incoming && prev) {
+      from = incoming.from
+      const p = positionOf(graph, prev)
+      position = { x: p.x + NODE_STEP, y: p.y }
+    } else {
+      position = { ...positionOf(graph, output) }
+    }
+  }
+
+  const node = createNode(graph, type, position)
+  let next = addNode(graph, node)
+  if (!isFilterType(type)) return { graph: next, id: node.id }
+
+  if (from) next = connect(next, { from, to: portRef(node.id, VIDEO_IN) })
+  for (const to of targets) next = connect(next, { from: portRef(node.id, VIDEO_OUT), to })
+
+  // Rozsunięcie: cały dół łańcucha o ten sam wektor, żeby zachować jego układ.
+  let nearest = Infinity
+  for (const to of targets) {
+    const t = next.nodes.find((n) => n.id === splitPort(to).node)
+    if (t) nearest = Math.min(nearest, positionOf(next, t).x)
+  }
+  const shift = position.x + NODE_STEP - nearest
+  if (shift > 0 && Number.isFinite(shift)) {
+    const down = videoDownstream(next, node.id)
+    const before = next
+    next = {
+      ...next,
+      nodes: next.nodes.map((n) => {
+        if (!down.has(n.id)) return n
+        const p = positionOf(before, n)
+        return { ...n, position: { x: p.x + shift, y: p.y } }
+      })
+    }
+  }
+  return { graph: next, id: node.id }
+}
+
+/**
+ * Dobiera kabel obrazu, gdy ciągnięty kabel upuszczono na korpus node'a (nie na uchwyt).
+ * `fromType` to rodzaj uchwytu, od którego zaczęto ciągnąć. Kable sygnału dają `null`,
+ * bo port byłby niejednoznaczny.
+ */
+export function videoLinkToNode(
+  graph: Graph,
+  fromRef: string,
+  fromType: 'source' | 'target',
+  nodeId: string
+): { from: string; to: string } | null {
+  const f = splitPort(fromRef)
+  const fromNode = graph.nodes.find((n) => n.id === f.node)
+  const target = graph.nodes.find((n) => n.id === nodeId)
+  if (!fromNode || !target || fromNode === target) return null
+  let link: { from: string; to: string }
+  if (fromType === 'source') {
+    if (outputKind(fromNode, f.port) !== 'video' || !NODE_DEFS[target.type].videoIn) return null
+    link = { from: fromRef, to: portRef(nodeId, VIDEO_IN) }
+  } else {
+    if (inputKind(fromNode, f.port) !== 'video' || !NODE_DEFS[target.type].videoOut) return null
+    link = { from: portRef(nodeId, VIDEO_OUT), to: fromRef }
+  }
+  return canConnect(disconnect(graph, link.to), link.from, link.to) ? link : null
 }
 
 /** Przesuwa filtr w łańcuchu o jedno miejsce (-1 = bliżej źródła). */

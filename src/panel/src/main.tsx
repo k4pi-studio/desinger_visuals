@@ -1,3 +1,7 @@
+import '@fontsource/geist-pixel/400.css'
+import '@fontsource/geist-mono/400.css'
+import '@fontsource/pixelify-sans/400.css'
+import '@fontsource/pixelify-sans/500.css'
 import './index.css'
 
 import { StrictMode } from 'react'
