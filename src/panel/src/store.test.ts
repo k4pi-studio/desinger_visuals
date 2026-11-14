@@ -17,6 +17,7 @@ vi.mock('./api', () => ({
   }
 }))
 
+import { emptyTimeline } from '@shared/timeline'
 import {
   commitGraph,
   createLoopback,
@@ -42,6 +43,7 @@ function appState(patch: Partial<AppState> = {}): AppState {
     library: [{ id: 'v1', name: 'a.mp4', size: 1, duration: null, thumb: null }],
     activeId: 'v1',
     graph: defaultGraph(),
+    timeline: emptyTimeline(),
     audio: {
       deviceId: null,
       devices: [],
