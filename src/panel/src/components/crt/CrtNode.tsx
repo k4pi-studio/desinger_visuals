@@ -27,7 +27,7 @@ const LABELS: Record<string, { short: string; led?: string }> = {
   color: { short: 'Color' },
   amount: { short: 'Amount' },
   rate: { short: 'Rate' },
-  chaos: { short: 'Chaos' }
+  tone: { short: 'B / W' }
 }
 
 const TITLES = {
@@ -36,7 +36,7 @@ const TITLES = {
   CRTEcho: { name: 'CRT Echo', panel: 'Echo', sub: 'cable reflections' },
   CRTSignal: { name: 'CRT Signal', panel: 'Signal', sub: 'hum · timebase · chroma' },
   CRTTube: { name: 'CRT Tube', panel: 'Tube', sub: 'glass · phosphor' },
-  CRTFlicker: { name: 'CRT Flicker', panel: 'Flicker', sub: 'mains · lamp' }
+  CRTFlicker: { name: 'CRT Flicker', panel: 'Flicker', sub: 'strobe · black / white' }
 } as const satisfies Record<CrtType, { name: string; panel: string; sub: string }>
 
 interface KnobState {

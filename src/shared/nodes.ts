@@ -160,9 +160,9 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('color', 'Nasycenie luminoforów', 0, 1, 0.005, 0.5)
   ]),
   CRTFlicker: filter('CRTFlicker', 'CRT Flicker', [
-    num('amount', 'Głębokość migotania', 0, 1, 0.005, 0),
-    num('rate', 'Częstotliwość (0,5–20 Hz)', 0, 1, 0.005, 0.5),
-    num('chaos', 'Nieregularność', 0, 1, 0.005, 0.3)
+    num('amount', 'Siła błysku', 0, 1, 0.005, 0),
+    num('rate', 'Błyski na sekundę (0,5–20)', 0, 1, 0.005, 0.5),
+    num('tone', 'Kolor: czarne → białe', 0, 1, 0.005, 0)
   ]),
   AudioIn: {
     type: 'AudioIn',

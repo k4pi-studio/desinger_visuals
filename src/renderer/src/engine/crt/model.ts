@@ -261,48 +261,51 @@ export function tubeUniforms(
 export interface FlickerKnobs {
   amount: number
   rate: number
-  chaos: number
+  tone: number
 }
 
 export interface FlickerUniforms {
-  /** Mnożnik jasności klatki, 0…1. */
-  gain: number
-  /** Częstotliwość migotania [Hz]. */
+  /** Udział klatki błysku: 0 = obraz, 1 = pełna czarna/biała klatka. */
+  mix: number
+  /** Kolor bieżącego błysku: 0 = czarny, 1 = biały. */
+  tone: number
+  /** Liczba błysków na sekundę. */
   freq: number
 }
 
 const FLICKER_F_MIN = 0.5
 const FLICKER_F_RATIO = 40 // 0,5 Hz · 40 = 20 Hz
-/** Szansa na zanik w cyklu przy pełnym Chaos (jak psująca się świetlówka). */
-const FLICKER_DROP = 0.35
-/** Drobne wahanie jasności w cyklach bez zaniku. */
-const FLICKER_WOBBLE = 0.15
+/** Najdłuższy błysk [s]; przy szybkim tempie najwyżej pół cyklu. */
+const FLASH_MAX = 0.06
 
 /**
- * CRT Flicker: migotanie jasności. Chaos 0 to równe pulsowanie (kosinus),
- * Chaos 1 to cykle losowane osobno: zanik do czerni albo prawie pełna jasność.
+ * CRT Flicker: stroboskop. Co cykl krótki błysk pełnej czarnej albo białej
+ * klatki (Tone = szansa, że błysk jest biały). Błysk trafia zawsze w co
+ * najmniej jedną klatkę, nawet gdy cykl jest krótszy niż klatka.
  */
 export class FlickerModel {
-  readonly out: FlickerUniforms = { gain: 1, freq: FLICKER_F_MIN }
+  readonly out: FlickerUniforms = { mix: 0, tone: 0, freq: FLICKER_F_MIN }
   private phase = 0
-  private cycle = 0
-  private cycleRand = 1
+  private cycle = -1
+  private flashLeft = 0
 
   step(k: FlickerKnobs, dt: number, random: () => number): FlickerUniforms {
     const o = this.out
-    const chaos = unit(k.chaos)
+    const step = Math.max(dt, 0)
     o.freq = FLICKER_F_MIN * Math.pow(FLICKER_F_RATIO, unit(k.rate))
-    this.phase += o.freq * Math.max(dt, 0)
+    this.phase += o.freq * step
     const cycle = Math.floor(this.phase)
     if (cycle !== this.cycle) {
       this.cycle = cycle
-      this.cycleRand = random()
+      this.flashLeft = Math.max(Math.min(0.5 / o.freq, FLASH_MAX), Number.MIN_VALUE)
+      o.tone = random() < unit(k.tone) ? 1 : 0
     }
-    if (this.phase > 1e6) this.phase -= cycle // bez utraty precyzji w długich setach
-    const regular = 0.5 - 0.5 * Math.cos(2 * Math.PI * (this.phase - Math.floor(this.phase)))
-    const r = this.cycleRand
-    const chaotic = r < FLICKER_DROP ? 1 : FLICKER_WOBBLE * r
-    o.gain = 1 - unit(k.amount) * ((1 - chaos) * regular + chaos * chaotic)
+    if (this.phase > 1e6) {
+      this.phase -= cycle // bez utraty precyzji w długich setach
+      this.cycle = 0
+    }
+    o.mix = this.flashLeft > 0 ? unit(k.amount) : 0
+    this.flashLeft -= step
     return o
   }
 }

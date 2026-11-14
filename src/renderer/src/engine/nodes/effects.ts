@@ -189,14 +189,14 @@ export function createEffect(type: NodeType): EffectHandle | null {
     case 'CRTFlicker': {
       const effect = new FlickerEffect()
       const model = new FlickerModel()
-      const knobs = { amount: 0, rate: 0.5, chaos: 0.3 }
+      const knobs = { amount: 0, rate: 0.5, tone: 0 }
       return {
         effect,
         apply(get, dt) {
           knobs.amount = get('amount')
           knobs.rate = get('rate')
-          knobs.chaos = get('chaos')
-          effect.setGain(model.step(knobs, dt, Math.random).gain)
+          knobs.tone = get('tone')
+          effect.setFlash(model.step(knobs, dt, Math.random))
         }
       }
     }

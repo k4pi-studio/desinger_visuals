@@ -132,12 +132,12 @@ describe('node’y CRT', () => {
     expect(FILTER_TYPES).toContain('CRTTube')
   })
 
-  it('CRTFlicker: Amount 0 (wyłączony), Rate 0,5, Chaos 0,3', () => {
+  it('CRTFlicker: Amount 0 (wyłączony), Rate 0,5, Tone 0 (czarne)', () => {
     const params = NODE_DEFS.CRTFlicker.params
     expect(params.map((p) => [p.key, p.default])).toEqual([
       ['amount', 0],
       ['rate', 0.5],
-      ['chaos', 0.3]
+      ['tone', 0]
     ])
     for (const p of params) expect(p).toMatchObject({ min: 0, max: 1, step: 0.005 })
     expect(FILTER_TYPES).toContain('CRTFlicker')

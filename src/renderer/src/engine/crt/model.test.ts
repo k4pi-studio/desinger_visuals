@@ -223,46 +223,63 @@ describe('tubeUniforms (CRT Tube: halacja, krzywa kineskopu, nasycenie)', () => 
   })
 })
 
-describe('FlickerModel (CRT Flicker: migotanie jasności)', () => {
-  const run = (k: FlickerKnobs, steps: number, dt: number, random = zero): number[] => {
+describe('FlickerModel (CRT Flicker: stroboskop czarnych/białych klatek)', () => {
+  const run = (
+    k: FlickerKnobs,
+    steps: number,
+    dt: number,
+    random = zero
+  ): { mix: number; tone: number }[] => {
     const m = new FlickerModel()
-    const gains: number[] = []
-    for (let i = 0; i < steps; i++) gains.push(m.step(k, dt, random).gain)
-    return gains
+    const out: { mix: number; tone: number }[] = []
+    for (let i = 0; i < steps; i++) {
+      const o = m.step(k, dt, random)
+      out.push({ mix: o.mix, tone: o.tone })
+    }
+    return out
   }
 
-  it('Amount 0 = bez migotania', () => {
-    for (const g of run({ amount: 0, rate: 1, chaos: 1 }, 100, 1 / 60)) expect(g).toBe(1)
+  it('Amount 0 = bez błysków', () => {
+    for (const o of run({ amount: 0, rate: 1, tone: 0 }, 100, 1 / 60)) expect(o.mix).toBe(0)
   })
 
-  it('Rate: od 0,5 Hz do 20 Hz', () => {
+  it('Rate: od 0,5 do 20 błysków na sekundę', () => {
     const m = new FlickerModel()
-    expect(m.step({ amount: 1, rate: 0, chaos: 0 }, 0, zero).freq).toBeCloseTo(0.5)
-    expect(m.step({ amount: 1, rate: 1, chaos: 0 }, 0, zero).freq).toBeCloseTo(20)
+    expect(m.step({ amount: 1, rate: 0, tone: 0 }, 0, zero).freq).toBeCloseTo(0.5)
+    expect(m.step({ amount: 1, rate: 1, tone: 0 }, 0, zero).freq).toBeCloseTo(20)
   })
 
-  it('Chaos 0: równe pulsowanie od pełnej jasności do czerni, okresowe', () => {
-    // 0,5 Hz → okres 2 s; 200 kroków po 10 ms = jeden okres
-    const g = run({ amount: 1, rate: 0, chaos: 0 }, 200, 0.01)
-    expect(Math.min(...g)).toBeLessThan(0.01)
-    expect(Math.max(...g)).toBeGreaterThan(0.99)
-    expect(g[199]).toBeGreaterThan(0.99)
+  it('pełna klatka przez ~60 ms co cykl, potem czysty obraz', () => {
+    // 1 Hz (rate = log40(2)), kroki 10 ms przez 1,5 s → błysk na starcie i po 1 s
+    const rate = Math.log(2) / Math.log(40)
+    const o = run({ amount: 1, rate, tone: 0 }, 150, 0.01)
+    const on = o.filter((x) => x.mix === 1).length
+    expect(on).toBeGreaterThanOrEqual(10)
+    expect(on).toBeLessThanOrEqual(14)
+    expect(o.filter((x) => x.mix !== 0 && x.mix !== 1)).toEqual([])
   })
 
-  it('Chaos 1: w każdym cyklu losowo – zanik albo prawie pełna jasność', () => {
-    const k = { amount: 1, rate: 1, chaos: 1 }
-    expect(run(k, 10, 0.1, zero).at(-1)).toBe(0)
-    expect(run(k, 10, 0.1, () => 0.99).at(-1)).toBeCloseTo(1 - 0.15 * 0.99)
+  it('każdy cykl daje błysk choćby na jedną klatkę, także przy 20 Hz i 30 fps', () => {
+    const o = run({ amount: 1, rate: 1, tone: 0 }, 30, 1 / 30)
+    expect(o.filter((x) => x.mix === 1).length).toBeGreaterThanOrEqual(15)
   })
 
-  it('gain zawsze w 0–1 dla wartości spoza zakresu, obiekt wyniku ten sam (bez alokacji)', () => {
+  it('Tone: 0 = czarne, 1 = białe, środek losuje kolor każdego błysku', () => {
+    const k = { amount: 1, rate: 1, tone: 0 }
+    expect(run(k, 5, 0.1).at(-1)!.tone).toBe(0)
+    expect(run({ ...k, tone: 1 }, 5, 0.1).at(-1)!.tone).toBe(1)
+    expect(run({ ...k, tone: 0.5 }, 5, 0.1, () => 0.2).at(-1)!.tone).toBe(1)
+    expect(run({ ...k, tone: 0.5 }, 5, 0.1, () => 0.8).at(-1)!.tone).toBe(0)
+  })
+
+  it('mix w 0–1 dla wartości spoza zakresu, obiekt wyniku ten sam (bez alokacji)', () => {
     const m = new FlickerModel()
-    const first = m.step({ amount: 5, rate: 9, chaos: -3 }, 0.013, one)
+    const first = m.step({ amount: 5, rate: 9, tone: -3 }, 0.013, one)
     for (let i = 0; i < 50; i++) {
-      const o = m.step({ amount: 5, rate: 9, chaos: 7 }, 0.013, Math.random)
+      const o = m.step({ amount: 5, rate: 9, tone: 7 }, 0.013, Math.random)
       expect(o).toBe(first)
-      expect(o.gain).toBeGreaterThanOrEqual(0)
-      expect(o.gain).toBeLessThanOrEqual(1)
+      expect(o.mix).toBeGreaterThanOrEqual(0)
+      expect(o.mix).toBeLessThanOrEqual(1)
     }
   })
 })

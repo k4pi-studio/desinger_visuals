@@ -150,12 +150,13 @@ describe('mapowanie parametrów', () => {
     handle.pass!.dispose()
   })
 
-  it('CRTFlicker: Amount 0 = gain 1, Amount 1 przy Chaos 0 ściemnia w cyklu', () => {
+  it('CRTFlicker: Amount 0 = brak błysku, Amount 1 = pełna biała klatka przy Tone 1', () => {
     const { handle, effect } = make('CRTFlicker', FlickerEffect)
-    handle.apply(getter({ amount: 0, rate: 0.5, chaos: 0 }), 0)
-    expect(effect.uniforms.get('gain')!.value).toBe(1)
-    handle.apply(getter({ amount: 1, rate: 0, chaos: 0 }), 1)
-    expect(effect.uniforms.get('gain')!.value).toBeLessThan(0.5)
+    handle.apply(getter({ amount: 0, rate: 0.5, tone: 1 }), 0)
+    expect(effect.uniforms.get('flash')!.value).toBe(0)
+    handle.apply(getter({ amount: 1, rate: 0, tone: 1 }), 2.01)
+    expect(effect.uniforms.get('flash')!.value).toBe(1)
+    expect(effect.uniforms.get('flashTone')!.value).toBe(1)
   })
 
   it('CRTTube: własne przejście, pokrętła → uniformy', () => {
