@@ -24,6 +24,13 @@ const ids = (t: Timeline): string[] => t.items.map((i) => i.id)
 const current = (t: Timeline): string => t.items[t.index].id
 
 describe('sanitizeTimeline', () => {
+  it('linked tylko jako true przy niepustej kolejce', () => {
+    expect(sanitizeTimeline({ linked: true, items: [{ videoId: 'v' }] }).linked).toBe(true)
+    expect(sanitizeTimeline({ linked: 1, items: [{ videoId: 'v' }] }).linked).toBe(false)
+    expect(sanitizeTimeline({ linked: true, items: [] }).linked).toBe(false)
+    expect(removeItem({ ...queue(['a']), linked: true }, 'i0').linked).toBe(false)
+  })
+
   it('śmieci → pusta kolejka', () => {
     expect(sanitizeTimeline(null)).toEqual(emptyTimeline())
     expect(sanitizeTimeline({ items: 'x' })).toEqual(emptyTimeline())

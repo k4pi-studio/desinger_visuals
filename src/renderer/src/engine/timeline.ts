@@ -77,14 +77,15 @@ export function loopTarget(
 }
 
 /**
- * Klip do odtwarzania. Gdy kolejka gra, wygrywa klip bieżącego elementu;
+ * Klip do odtwarzania. Gdy kolejka gra albo ujęcie jest edytowane (linked), wygrywa
+ * klip bieżącego elementu;
  * inaczej stały plik z node'a źródła (jeśli jest w bibliotece) albo aktywne wideo.
  */
 export function pickVideoId(state: AppState, sourceFixedId: string | null): string | null {
   const has = (id: string | null): id is string =>
     id !== null && state.library.some((v) => v.id === id)
   const t = state.timeline
-  const item = t.playing ? t.items[t.index] : undefined
+  const item = t.playing || t.linked ? t.items[t.index] : undefined
   if (item && has(item.videoId)) return item.videoId
   return has(sourceFixedId) ? sourceFixedId : state.activeId
 }

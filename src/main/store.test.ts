@@ -232,9 +232,10 @@ describe('AppStore – kolejka klipów', () => {
     expect(store.get().timeline.index).toBe(1)
   })
 
-  it('zmiany grafu w trakcie grania zapisują się do bieżącego elementu, po zatrzymaniu już nie', () => {
+  it('zmiany grafu zapisują się do pokazanego ujęcia także po zatrzymaniu kolejki', () => {
     store.setGraph(withNode('vig1'))
     store.timelineAdd('a')
+    store.timelineAdd('b')
     store.timelinePlay(true)
     store.setParam('vig1', 'darkness', 0.9)
     expect(
@@ -246,10 +247,24 @@ describe('AppStore – kolejka klipów', () => {
     )
 
     store.timelinePlay(false)
+    store.timelineGoto(1)
+    expect(store.get().timeline.linked).toBe(true)
+    store.setParam('vig1', 'darkness', 0.2)
+    const [first, second] = store.get().timeline.items
+    expect(second.graph.nodes.find((n) => n.id === 'vig1')!.params.darkness).toBe(0.2)
+    expect(first.graph.nodes.find((n) => n.id === 'vig1')!.params.darkness).toBe(0.9)
+  })
+
+  it('wybór klipu w bibliotece rozłącza graf od ujęć', () => {
+    store.setGraph(withNode('vig1'))
+    store.timelineAdd('a')
+    store.timelineGoto(0)
+    store.select('c')
+    expect(store.get().timeline.linked).toBe(false)
     store.setParam('vig1', 'darkness', 0.1)
     expect(
       store.get().timeline.items[0].graph.nodes.find((n) => n.id === 'vig1')!.params.darkness
-    ).toBe(0.9)
+    ).not.toBe(0.1)
   })
 
   it('usunięcie grającego elementu przełącza na następny razem z jego grafem i klipem', () => {

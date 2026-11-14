@@ -109,6 +109,11 @@ describe('pickVideoId', () => {
     expect(pickVideoId(state(true, 'b'), 'a')).toBe('b')
   })
 
+  it('zatrzymana kolejka z połączonym ujęciem (edycja) też pokazuje jego klip', () => {
+    const st = state(false, 'b')
+    expect(pickVideoId({ ...st, timeline: { ...st.timeline, linked: true } }, 'a')).toBe('b')
+  })
+
   it('gdy kolejka stoi albo klipu nie ma w bibliotece – jak dotąd', () => {
     expect(pickVideoId(state(false, 'b'), 'a')).toBe('a')
     expect(pickVideoId(state(false, 'b'), null)).toBe('a')

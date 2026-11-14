@@ -52,6 +52,7 @@ export class Engine {
   /** Bieżący element kolejki, gdy gra; czytany w pętli bez alokacji. */
   private timelineItem: TimelineItem | null = null
   /** To, co widzi zegar cięć (czas zależny od pętli i długości pliku); bez alokacji w klatce. */
+  private timelinePlaying = false
   private readonly seqItem: SequencerItem = { id: '', duration: 1, waitBeat: true }
 
   private raf = 0
@@ -127,7 +128,9 @@ export class Engine {
   /** Bieżący element kolejki → fragment od–do w puli wideo (restart przy zmianie elementu). */
   private updateTimeline(state: AppState): void {
     const t = state.timeline
-    const item = t.playing ? (t.items[t.index] ?? null) : null
+    // Fragment obowiązuje, gdy kolejka gra albo ujęcie jest edytowane; zegar cięć tylko przy graniu.
+    const item = t.playing || t.linked ? (t.items[t.index] ?? null) : null
+    this.timelinePlaying = t.playing
     const prev = this.timelineItem
     this.timelineItem = item
     if (!item) {
@@ -212,7 +215,7 @@ export class Engine {
     const levels = this.audio.update(now)
     this.bus.evaluate(levels, dt)
 
-    const seq = this.timelineItem ? this.seqItem : null
+    const seq = this.timelinePlaying && this.timelineItem ? this.seqItem : null
     if (this.sequencer.step(dt, beatTriggered(levels.beat), seq, this.pool.ready))
       window.api.timelineNext()
     this.pool.enforceRange()

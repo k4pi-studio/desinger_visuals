@@ -103,7 +103,8 @@ export class AppStore {
 
   select(id: string | null): void {
     if (id !== null && !this.state.library.some((v) => v.id === id)) return
-    this.update({ activeId: id }, true)
+    // Klip z biblioteki = zwykły, wspólny graf (już nie efekty ujęcia z kolejki).
+    this.update({ activeId: id, timeline: { ...this.state.timeline, linked: false } }, true)
   }
 
   /** Zmiana jednego parametru: wysyła lekką łatkę zamiast pełnego stanu. */
@@ -141,7 +142,7 @@ export class AppStore {
   private withCurrentGraph(graph: Graph): Timeline {
     const t = this.state.timeline
     const item = t.items[t.index]
-    if (!t.playing || !item) return t
+    if (!t.linked || !item) return t
     const items = [...t.items]
     items[t.index] = { ...item, graph }
     return { ...t, items }
@@ -156,7 +157,8 @@ export class AppStore {
   /** Ustawia kolejkę; z `apply` przełącza na klip i graf bieżącego elementu. */
   private setTimeline(timeline: Timeline, apply = false): void {
     const item = apply ? timeline.items[timeline.index] : undefined
-    const patch: Partial<AppState> = { timeline }
+    // Pokazany element = graf połączony z nim (edycja efektów trafia do niego).
+    const patch: Partial<AppState> = { timeline: item ? { ...timeline, linked: true } : timeline }
     if (item) {
       patch.graph = item.graph
       if (this.hasVideo(item.videoId)) patch.activeId = item.videoId

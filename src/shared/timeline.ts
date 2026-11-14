@@ -22,7 +22,7 @@ const isId = (v: unknown): v is string => typeof v === 'string' && v.length > 0 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
 
 export function emptyTimeline(): Timeline {
-  return { playing: false, index: 0, items: [] }
+  return { playing: false, linked: false, index: 0, items: [] }
 }
 
 /** Liczby elementu w zakresach; `outPoint` za blisko `inPoint` → null (do końca). */
@@ -69,7 +69,8 @@ export function sanitizeTimeline(raw: unknown): Timeline {
     isNum(raw.index) && Number.isInteger(raw.index) && raw.index >= 0 && raw.index < items.length
       ? raw.index
       : 0
-  return { playing: raw.playing === true && items.length > 0, index, items }
+  const any = items.length > 0
+  return { playing: raw.playing === true && any, linked: raw.linked === true && any, index, items }
 }
 
 export function addItem(t: Timeline, videoId: string, graph: Graph, id: string): Timeline {
@@ -93,7 +94,8 @@ export function removeItem(t: Timeline, id: string): Timeline {
   const items = t.items.filter((_, i) => i !== at)
   let index = at < t.index ? t.index - 1 : t.index
   if (index >= items.length) index = 0
-  return { playing: t.playing && items.length > 0, index, items }
+  const any = items.length > 0
+  return { playing: t.playing && any, linked: t.linked && any, index, items }
 }
 
 export function moveItem(t: Timeline, id: string, to: number): Timeline {

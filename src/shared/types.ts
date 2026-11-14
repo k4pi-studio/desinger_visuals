@@ -107,6 +107,8 @@ export type TimelinePatch = Partial<
 
 export interface Timeline {
   playing: boolean
+  /** Graf jest połączony z bieżącym elementem: zmiany efektów zapisują się do niego. */
+  linked: boolean
   /** Bieżący element. */
   index: number
   items: TimelineItem[]

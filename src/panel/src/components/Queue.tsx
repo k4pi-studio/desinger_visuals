@@ -162,7 +162,8 @@ function Row({
   count,
   clip,
   current,
-  playing
+  playing,
+  linked
 }: {
   item: TimelineItem
   index: number
@@ -170,6 +171,7 @@ function Row({
   clip: VideoItem | undefined
   current: boolean
   playing: boolean
+  linked: boolean
 }): React.JSX.Element {
   const live = current && playing
   return (
@@ -187,6 +189,14 @@ function Row({
         >
           {clip?.name ?? 'brak pliku'}
         </button>
+        {current && linked && !playing && (
+          <span
+            className="tag bg-black text-term-green"
+            title="Zmiany efektów w grafie zapisują się do tego ujęcia"
+          >
+            edytujesz
+          </span>
+        )}
         <button
           type="button"
           className="tag tag-btn"
@@ -286,7 +296,7 @@ export function Queue(): React.JSX.Element | null {
   const timeline = usePanel((s) => s.app?.timeline)
   const library = usePanel((s) => s.app?.library ?? [])
   if (!timeline) return null
-  const { items, playing, index } = timeline
+  const { items, playing, linked, index } = timeline
   const skip = (): void => {
     const next = nextIndex(timeline, new Set(library.map((v) => v.id)))
     if (next !== null) timelineGoto(next)
@@ -313,19 +323,27 @@ export function Queue(): React.JSX.Element | null {
           Dodaj klipy przyciskiem „+ kolejka” przy pliku. Każdy dostaje kopię obecnych efektów.
         </div>
       ) : (
-        <div className="rows">
-          {items.map((item, i) => (
-            <Row
-              key={item.id}
-              item={item}
-              index={i}
-              count={items.length}
-              clip={library.find((v) => v.id === item.videoId)}
-              current={i === index}
-              playing={playing}
-            />
-          ))}
-        </div>
+        <>
+          {!playing && !linked && (
+            <div className="mb-1 text-meta text-muted">
+              Kliknij ujęcie, żeby ustawić mu własne efekty.
+            </div>
+          )}
+          <div className="rows">
+            {items.map((item, i) => (
+              <Row
+                key={item.id}
+                item={item}
+                index={i}
+                count={items.length}
+                clip={library.find((v) => v.id === item.videoId)}
+                current={i === index}
+                playing={playing}
+                linked={linked}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
