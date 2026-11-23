@@ -141,7 +141,8 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   ]),
   Mirror: filter('Mirror', 'Mirror', [
     num('angle', 'Kąt osi odbicia (°)', 0, 360, 1, 90),
-    num('offset', 'Odległość osi od środka', -0.5, 0.5, 0.005, 0)
+    num('offset', 'Odległość osi od środka', -0.5, 0.5, 0.005, 0),
+    num('softness', 'Miękkość krawędzi', 0, 0.3, 0.005, 0.06)
   ]),
   CRTGuns: filter('CRTGuns', 'CRT Guns', [
     num('red', 'Działo R', 0, 1, 0.005, 0.5),

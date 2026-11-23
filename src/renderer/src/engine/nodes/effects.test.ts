@@ -148,6 +148,12 @@ describe('mapowanie parametrów', () => {
     expect(effect.uniforms.get('offset')!.value).toBe(0) // stare projekty bez offsetu: oś przez środek
   })
 
+  it('Mirror: miękkość krawędzi → uniform softness', () => {
+    const { handle, effect } = make('Mirror', MirrorEffect)
+    handle.apply(getter({ angle: 90, softness: 0.1 }), 1 / 60)
+    expect(effect.uniforms.get('softness')!.value).toBe(0.1)
+  })
+
   it('mirrorNormal: 0° = oś pozioma (góra na dół), 45° = przekątna', () => {
     const out = new Vector2()
     expect(mirrorNormal(0, out)).toBe(out)

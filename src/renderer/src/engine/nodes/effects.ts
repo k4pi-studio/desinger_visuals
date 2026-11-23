@@ -147,6 +147,7 @@ export function createEffect(type: NodeType): EffectHandle | null {
         apply(get) {
           effect.setAngle(get('angle'))
           effect.setOffset(get('offset'))
+          effect.setSoftness(get('softness'))
         }
       }
     }

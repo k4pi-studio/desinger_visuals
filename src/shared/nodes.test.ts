@@ -133,6 +133,15 @@ describe('Mirror', () => {
         max: 0.5,
         step: 0.005,
         default: 0
+      },
+      {
+        key: 'softness',
+        label: 'Miękkość krawędzi',
+        kind: 'number',
+        min: 0,
+        max: 0.3,
+        step: 0.005,
+        default: 0.06
       }
     ])
     expect(FILTER_TYPES).toContain('Mirror')

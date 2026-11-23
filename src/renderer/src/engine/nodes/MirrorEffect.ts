@@ -23,7 +23,8 @@ export class MirrorEffect extends Effect {
       attributes: EffectAttribute.CONVOLUTION,
       uniforms: new Map<string, Uniform>([
         ['normal', new Uniform(new Vector2(-1, 0))],
-        ['offset', new Uniform(0)]
+        ['offset', new Uniform(0)],
+        ['softness', new Uniform(0.06)]
       ])
     })
   }
@@ -35,5 +36,10 @@ export class MirrorEffect extends Effect {
   /** Przesunięcie osi wzdłuż normalnej; dodatnie zmniejsza stronę, która zostaje. */
   setOffset(offset: number): void {
     this.uniforms.get('offset')!.value = offset
+  }
+
+  /** Szerokość pasa przy osi, w którym oryginał płynnie przechodzi w odbicie; 0 = ostra krawędź. */
+  setSoftness(softness: number): void {
+    this.uniforms.get('softness')!.value = softness
   }
 }
