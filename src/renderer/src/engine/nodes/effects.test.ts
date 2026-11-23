@@ -140,6 +140,14 @@ describe('mapowanie parametrów', () => {
     expect(n.y).toBeCloseTo(0)
   })
 
+  it('Mirror: odległość osi od środka → uniform offset', () => {
+    const { handle, effect } = make('Mirror', MirrorEffect)
+    handle.apply(getter({ angle: 90, offset: 0.25 }), 1 / 60)
+    expect(effect.uniforms.get('offset')!.value).toBe(0.25)
+    handle.apply(getter({ angle: 90 }), 1 / 60)
+    expect(effect.uniforms.get('offset')!.value).toBe(0) // stare projekty bez offsetu: oś przez środek
+  })
+
   it('mirrorNormal: 0° = oś pozioma (góra na dół), 45° = przekątna', () => {
     const out = new Vector2()
     expect(mirrorNormal(0, out)).toBe(out)

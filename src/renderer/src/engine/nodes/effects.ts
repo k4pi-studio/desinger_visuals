@@ -146,6 +146,7 @@ export function createEffect(type: NodeType): EffectHandle | null {
         effect,
         apply(get) {
           effect.setAngle(get('angle'))
+          effect.setOffset(get('offset'))
         }
       }
     }

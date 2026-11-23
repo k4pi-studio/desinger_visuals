@@ -1,12 +1,14 @@
 // Mirror: piksele po „złej” stronie osi biorą kolor ze swojego odbicia.
 // Liczone w proporcjach ekranu (aspect), żeby kąt osi był prawdziwy.
+// offset przesuwa oś wzdłuż normalnej (w wysokościach kadru).
 
 uniform vec2 normal;
+uniform float offset;
 
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec2 scale = vec2(aspect, 1.0);
   vec2 p = (uv - 0.5) * scale;
-  float d = dot(p, normal);
+  float d = dot(p, normal) - offset;
   if (d >= 0.0) {
     outputColor = inputColor;
     return;

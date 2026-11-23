@@ -114,7 +114,7 @@ describe('PosterizeTime', () => {
 })
 
 describe('Mirror', () => {
-  it('filtr z kątem osi odbicia 0–360°, domyślnie 90° (lewo ↔ prawo)', () => {
+  it('filtr z kątem osi odbicia 0–360° (domyślnie 90°, lewo ↔ prawo) i odległością osi od środka', () => {
     expect(NODE_DEFS.Mirror.params).toEqual([
       {
         key: 'angle',
@@ -124,6 +124,15 @@ describe('Mirror', () => {
         max: 360,
         step: 1,
         default: 90
+      },
+      {
+        key: 'offset',
+        label: 'Odległość osi od środka',
+        kind: 'number',
+        min: -0.5,
+        max: 0.5,
+        step: 0.005,
+        default: 0
       }
     ])
     expect(FILTER_TYPES).toContain('Mirror')

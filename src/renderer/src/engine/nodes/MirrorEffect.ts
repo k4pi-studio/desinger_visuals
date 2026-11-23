@@ -1,5 +1,6 @@
-// Mirror: odbicie lustrzane względem osi przez środek kadru pod zadanym kątem.
-// Strona wskazana przez normalną zostaje, druga jest jej odbiciem.
+// Mirror: odbicie lustrzane względem osi pod zadanym kątem, przesuniętej od środka
+// kadru o `offset` (wysokości kadru). Strona wskazana przez normalną zostaje,
+// druga jest jej odbiciem.
 
 import { Effect, EffectAttribute } from 'postprocessing'
 import { Uniform, Vector2 } from 'three'
@@ -20,11 +21,19 @@ export class MirrorEffect extends Effect {
   constructor() {
     super('Mirror', fragment, {
       attributes: EffectAttribute.CONVOLUTION,
-      uniforms: new Map([['normal', new Uniform(new Vector2(-1, 0))]])
+      uniforms: new Map<string, Uniform>([
+        ['normal', new Uniform(new Vector2(-1, 0))],
+        ['offset', new Uniform(0)]
+      ])
     })
   }
 
   setAngle(angle: number): void {
     mirrorNormal(angle, this.uniforms.get('normal')!.value as Vector2)
+  }
+
+  /** Przesunięcie osi wzdłuż normalnej; dodatnie zmniejsza stronę, która zostaje. */
+  setOffset(offset: number): void {
+    this.uniforms.get('offset')!.value = offset
   }
 }

@@ -139,7 +139,10 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
   PosterizeTime: filter('PosterizeTime', 'Posterize Time', [
     num('fps', 'Klatki na sekundę', 1, 30, 1, 12)
   ]),
-  Mirror: filter('Mirror', 'Mirror', [num('angle', 'Kąt osi odbicia (°)', 0, 360, 1, 90)]),
+  Mirror: filter('Mirror', 'Mirror', [
+    num('angle', 'Kąt osi odbicia (°)', 0, 360, 1, 90),
+    num('offset', 'Odległość osi od środka', -0.5, 0.5, 0.005, 0)
+  ]),
   CRTGuns: filter('CRTGuns', 'CRT Guns', [
     num('red', 'Działo R', 0, 1, 0.005, 0.5),
     num('green', 'Działo G', 0, 1, 0.005, 0.5),
