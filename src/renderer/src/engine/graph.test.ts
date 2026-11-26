@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { connect, defaultGraph, updateNode } from '@shared/graph'
 import { defaultParams } from '@shared/nodes'
 import type { Graph, GraphNode } from '@shared/types'
-import { SignalBus, compileGraph, lfoShape } from './graph'
+import { SignalBus, compileGraph, lfoShape, smoothStep } from './graph'
 
 const audio = { bass: 0.5, mid: 0.2, high: 0.1, level: 0.3, beat: 1 }
 const nodesOf = (g: Graph): Map<string, GraphNode> => new Map(g.nodes.map((n) => [n.id, n]))
@@ -127,5 +127,47 @@ describe('SignalBus – LFO, Math i wartości domyślne', () => {
     expect(c.outputId).toBe('out')
     expect(c.controlIds).toEqual(['a1', 'lfo1'])
     expect([...c.bindings.keys()]).toEqual(['bloom1.intensity', 'rgbsplit1.amount'])
+  })
+})
+
+describe('smoothStep', () => {
+  it('atak i zwolnienie to stałe czasowe w ms', () => {
+    expect(smoothStep(0, 1, 0.03, 30, 400)).toBeCloseTo(1 - Math.exp(-1), 6)
+    expect(smoothStep(1, 0, 0.4, 30, 400)).toBeCloseTo(Math.exp(-1), 6)
+  })
+
+  it('0 ms przepuszcza, dt 0 stoi, długie dt nie przestrzeliwuje', () => {
+    expect(smoothStep(0.2, 0.9, 1 / 60, 0, 400)).toBe(0.9)
+    expect(smoothStep(0.2, 0.9, 0, 30, 400)).toBe(0.2)
+    const v = smoothStep(0.2, 0.9, 0.1, 1, 400)
+    expect(v).toBeLessThanOrEqual(0.9)
+    expect(v).toBeCloseTo(0.9, 6)
+    for (const dt of [0, 1e-4, 1 / 60, 0.1, 5]) {
+      const w = smoothStep(0.9, 0.2, dt, 30, 400)
+      expect(w).toBeGreaterThanOrEqual(0.2)
+      expect(w).toBeLessThanOrEqual(0.9)
+    }
+  })
+})
+
+describe('SignalBus – Wygładzanie', () => {
+  it('stały sygnał narasta płynnie od 0 do wejścia', () => {
+    const base = defaultGraph()
+    let g: Graph = {
+      ...base,
+      nodes: [...base.nodes, { id: 's1', type: 'Smooth', params: defaultParams('Smooth') }]
+    }
+    g = connect(g, { from: 'a1.level', to: 's1.in' })
+    const b = new SignalBus(compileGraph(g), nodesOf(g))
+    const full = { ...audio, level: 1 }
+    const seen: number[] = []
+    for (let i = 0; i < 60; i++) {
+      b.evaluate(full, 1 / 60)
+      seen.push(b.values.get('s1.out')!)
+    }
+    expect(seen[0]).toBeGreaterThan(0)
+    expect(seen[0]).toBeLessThan(1)
+    for (let i = 1; i < seen.length; i++) expect(seen[i]).toBeGreaterThanOrEqual(seen[i - 1])
+    expect(seen[59]).toBeCloseTo(1, 3)
   })
 })

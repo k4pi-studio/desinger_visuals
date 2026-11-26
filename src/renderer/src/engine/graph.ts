@@ -63,10 +63,27 @@ export function lfoShape(shape: number, phase: number): number {
   }
 }
 
+/**
+ * Krok wygładzania: wykładnicze dążenie do `target` ze stałą czasową ataku (gdy rośnie)
+ * albo zwolnienia (gdy maleje), w ms. 0 ms przepuszcza od razu.
+ */
+export function smoothStep(
+  prev: number,
+  target: number,
+  dt: number,
+  attackMs: number,
+  releaseMs: number
+): number {
+  const tau = (target > prev ? attackMs : releaseMs) / 1000
+  if (!(tau > 0)) return target
+  return prev + (target - prev) * (1 - Math.exp(-Math.max(0, dt) / tau))
+}
+
 /** Wartości sygnałów w bieżącej klatce i rozwiązywanie parametrów z kablami. */
 export class SignalBus {
   readonly values = new Map<string, number>()
   private readonly phases = new Map<string, number>()
+  private readonly smoothed = new Map<string, number>()
 
   constructor(
     private compiled: CompiledGraph,
@@ -76,6 +93,7 @@ export class SignalBus {
   setGraph(compiled: CompiledGraph, nodes: Map<string, GraphNode>): void {
     this.compiled = compiled
     this.nodes = nodes
+    for (const id of this.smoothed.keys()) if (!nodes.has(id)) this.smoothed.delete(id)
   }
 
   /** Parametr liczbowy: wartość z kabla albo z suwaka. */
@@ -116,6 +134,20 @@ export class SignalBus {
           const hi = this.number(id, 'max')
           const v = input * this.number(id, 'scale') + this.number(id, 'offset')
           this.values.set(`${id}.out`, clamp(v, Math.min(lo, hi), Math.max(lo, hi)))
+          break
+        }
+        case 'Smooth': {
+          const input = this.number(id, 'in')
+          const prev = this.smoothed.get(id) ?? 0
+          const v = smoothStep(
+            prev,
+            input,
+            dt,
+            this.number(id, 'attack'),
+            this.number(id, 'release')
+          )
+          this.smoothed.set(id, v)
+          this.values.set(`${id}.out`, v)
           break
         }
       }

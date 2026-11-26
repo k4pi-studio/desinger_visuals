@@ -23,6 +23,7 @@ export type NodeType =
   | 'AudioIn'
   | 'LFO'
   | 'Math'
+  | 'Smooth'
   | 'Output'
 
 export type NodeCategory = 'source' | 'filter' | 'control' | 'output'
@@ -241,6 +242,19 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
       num('offset', 'Offset', -5, 5, 0.01, 0),
       num('min', 'Min', -10, 10, 0.01, 0),
       num('max', 'Max', -10, 10, 0.01, 1)
+    ]
+  },
+  Smooth: {
+    type: 'Smooth',
+    label: 'Wygładzanie',
+    category: 'control',
+    videoIn: false,
+    videoOut: false,
+    signalIn: ['in'],
+    signalOut: ['out'],
+    params: [
+      num('attack', 'Atak (ms)', 0, 2000, 1, 30),
+      num('release', 'Zwolnienie (ms)', 0, 5000, 1, 400)
     ]
   },
   Output: {
