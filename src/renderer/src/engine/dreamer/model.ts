@@ -141,7 +141,7 @@ export function grainCell(size: number, long: number): number {
 }
 
 /**
- * Kiedy ziarno losuje nowy wzór. Ruch 0 = wzór stoi, 1 = nowy co klatkę (60 fps);
+ * Kiedy ziarno losuje nowy wzór. Ruch 0 = wzór stoi, 1 = nowy w każdej klatce;
  * pomiędzy odstęp maleje wykładniczo od 2 s.
  */
 export class GrainClock {
@@ -150,6 +150,8 @@ export class GrainClock {
 
   tick(dt: number, motion: number): number {
     if (!(motion > 0)) return this.seed
+    // Pełny ruch: nowy wzór w każdej klatce, niezależnie od odświeżania (60 / 120 Hz).
+    if (motion >= 1) return (this.seed = (this.seed + 1) % 65536)
     const interval = 2 * Math.pow(1 / 120, Math.min(1, motion))
     this.acc += Math.max(0, dt)
     if (this.acc + 1e-9 >= interval) {

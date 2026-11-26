@@ -101,6 +101,16 @@ describe('GrainClock', () => {
     }
   })
 
+  it('Ruch 1 przy 120 Hz i nierównych klatkach też zmienia co klatkę', () => {
+    const c = new GrainClock()
+    let prev = c.tick(1 / 120, 1)
+    for (const dt of [1 / 120, 1 / 120, 0.005, 1 / 120, 0.012]) {
+      const s = c.tick(dt, 1)
+      expect(s).not.toBe(prev)
+      prev = s
+    }
+  })
+
   it('mniejszy ruch zmienia wzór rzadziej', () => {
     const count = (motion: number): number => {
       const c = new GrainClock()
