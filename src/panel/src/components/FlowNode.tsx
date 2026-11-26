@@ -9,6 +9,8 @@ import type { GraphNode } from '@shared/types'
 import { CATEGORY_TAG, lineVar, portColor } from '../palette'
 import { usePanel } from '../store'
 import { CrtNode } from './crt/CrtNode'
+import { DreamerNode } from './dreamer/DreamerNode'
+import { isDreamerType } from './dreamer/dreamerTypes'
 import { isCrtType } from './crt/knobMath'
 
 export type VzNode = Node<{ node: GraphNode }, 'vz'>
@@ -72,6 +74,9 @@ function format(v: unknown): string {
 }
 
 export function FlowNode({ data, selected }: NodeProps<VzNode>): React.JSX.Element {
+  if (isDreamerType(data.node.type)) {
+    return <DreamerNode node={data.node} selected={selected} />
+  }
   if (isCrtType(data.node.type)) {
     return <CrtNode node={data.node} selected={selected} />
   }

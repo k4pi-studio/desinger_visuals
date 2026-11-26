@@ -2,11 +2,12 @@
 // jack nad każdym pokrętłem (wejście sygnału), wideo bokami, footswitch = bypass.
 
 import { Handle, Position } from '@xyflow/react'
-import { NODE_DEFS, VIDEO_IN, VIDEO_OUT, type NumberParamDef } from '@shared/nodes'
-import type { GraphEdge, GraphNode } from '@shared/types'
+import { VIDEO_IN, VIDEO_OUT } from '@shared/nodes'
+import type { GraphNode } from '@shared/types'
 import { setBypass, usePanel } from '../../store'
 import { Knob } from './Knob'
-import { isCrtType, knobAngle, liveValue, modRange, type CrtType } from './knobMath'
+import { isCrtType, knobAngle, modRange, type CrtType } from './knobMath'
+import { useKnobs, type KnobState } from './useKnobs'
 import './crt.css'
 
 const LABELS: Record<string, { short: string; led?: string }> = {
@@ -39,38 +40,23 @@ const TITLES = {
   CRTFlicker: { name: 'CRT Flicker', panel: 'Flicker', sub: 'strobe · black / white' }
 } as const satisfies Record<CrtType, { name: string; panel: string; sub: string }>
 
-interface KnobState {
-  def: NumberParamDef
-  value: number
-  /** Kabel wpięty w pokrętło (modulacja). */
-  edge?: GraphEdge
-}
-
-function useKnobs(node: GraphNode): KnobState[] {
-  const graph = usePanel((s) => s.app?.graph)
-  const params = NODE_DEFS[node.type].params.filter((p) => p.kind === 'number')
-  const edges = params.map((p) => graph?.edges.find((e) => e.to === `${node.id}.${p.key}`))
-  // Mierniki audio przychodzą co ~100 ms: subskrybujemy je tylko, gdy pokrętło ma kabel.
-  const cabled = edges.some(Boolean)
-  const audio = usePanel((s) => (cabled ? s.audio : null))
-  return params.map((p, i) => {
-    const live = graph && audio ? liveValue(graph, node.id, p.key, audio) : null
-    const set = node.params[p.key]
-    return { def: p, value: live ?? (typeof set === 'number' ? set : p.default), edge: edges[i] }
-  })
-}
-
-function Column({
+export function Column({
   nodeId,
   k,
-  ledAlways
+  ledAlways,
+  short,
+  led: ledColor
 }: {
   nodeId: string
   k: KnobState
   ledAlways: boolean
+  /** Krótka etykieta pod pokrętłem (domyślnie z tabeli CRT albo pełna nazwa). */
+  short?: string
+  /** Kolor lampki pod pokrętłem. */
+  led?: string
 }): React.JSX.Element {
-  const label = LABELS[k.def.key] ?? { short: k.def.label }
-  const led = label.led ?? '#ffb02e'
+  const label = short ? { short } : (LABELS[k.def.key] ?? { short: k.def.label })
+  const led = ledColor ?? label.led ?? '#ffb02e'
   const mod = k.edge && modRange(k.edge, k.def)
   return (
     <div className="crt-col">
@@ -90,7 +76,7 @@ function Column({
 }
 
 /** Rząd jacków na górnej krawędzi, wyrównany z kolumnami pokręteł. */
-function Jacks({ knobs }: { knobs: KnobState[] }): React.JSX.Element {
+export function Jacks({ knobs }: { knobs: KnobState[] }): React.JSX.Element {
   return (
     <div className="crt-jacks">
       {knobs.map((k) => (
