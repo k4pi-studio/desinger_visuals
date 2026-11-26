@@ -19,6 +19,7 @@ import {
   type ParamValue
 } from '@shared/types'
 import { AudioInput } from './audio/capture'
+import { MidiInput } from './midi/input'
 import { compileGraph, SignalBus, type CompiledGraph } from './graph'
 import { createEffect, type EffectHandle, type RawGetter } from './nodes/effects'
 import { VideoPool, type VideoSlot } from './video/VideoSource'
@@ -41,6 +42,7 @@ export class Engine {
   private effects: ActiveEffect[] = []
   private readonly pool: VideoPool
   private readonly audio: AudioInput
+  private readonly midi = new MidiInput()
   private readonly resizeObserver: ResizeObserver
 
   private nodes = new Map<string, GraphNode>()
@@ -75,6 +77,7 @@ export class Engine {
 
     this.pool = new VideoPool((slot) => this.onVideoSwap(slot))
     this.audio = new AudioInput(onAudioStatus)
+    void this.midi.start()
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
@@ -109,6 +112,7 @@ export class Engine {
     this.raf = 0
     this.resizeObserver.disconnect()
     this.audio.dispose()
+    this.midi.dispose()
     this.pool.dispose()
     this.composer?.dispose()
     this.material.dispose()
@@ -192,7 +196,7 @@ export class Engine {
     this.lastFrame = now
 
     const levels = this.audio.update(now)
-    this.bus.evaluate(levels, dt)
+    this.bus.evaluate(levels, dt, this.midi.state)
 
     const sourceId = this.compiled.sourceId
     if (sourceId) {

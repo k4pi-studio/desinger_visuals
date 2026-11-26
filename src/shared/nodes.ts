@@ -26,6 +26,7 @@ export type NodeType =
   | 'LFO'
   | 'Math'
   | 'Smooth'
+  | 'MPC'
   | 'Output'
 
 export type NodeCategory = 'source' | 'filter' | 'control' | 'output'
@@ -306,6 +307,29 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     params: [
       num('attack', 'Atak (ms)', 0, 2000, 1, 30),
       num('release', 'Zwolnienie (ms)', 0, 5000, 1, 400)
+    ]
+  },
+  MPC: {
+    type: 'MPC',
+    label: 'MPC',
+    category: 'control',
+    videoIn: false,
+    videoOut: false,
+    signalIn: [],
+    signalOut: ['hit', 'held', 'last'],
+    params: [
+      {
+        key: 'pad',
+        label: 'Pad',
+        kind: 'select',
+        default: 0,
+        options: [
+          { value: 0, label: 'Wszystkie' },
+          ...Array.from({ length: 16 }, (_, i) => ({ value: i + 1, label: `Pad ${i + 1}` }))
+        ]
+      },
+      num('decay', 'Wygasanie (s)', 0.05, 3, 0.05, 0.4),
+      num('gain', 'Wzmocnienie', 0, 4, 0.05, 1)
     ]
   },
   Output: {
