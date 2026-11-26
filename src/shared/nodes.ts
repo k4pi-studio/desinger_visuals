@@ -20,6 +20,7 @@ export type NodeType =
   | 'CRTTube'
   | 'CRTFlicker'
   | 'DreamerBlur'
+  | 'DreamerGrain'
   | 'DreamerGradient'
   | 'AudioIn'
   | 'LFO'
@@ -207,6 +208,33 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('centerY', 'Środek Y', 0, 1, 0.005, 0.5),
     num('focus', 'Ostry obszar (Band, Ellipse)', 0, 1, 0.005, 0.3),
     num('feather', 'Miękkość przejścia', 0, 1, 0.005, 0.5)
+  ]),
+  DreamerGrain: filter('DreamerGrain', 'Dreamer Ziarno', [
+    {
+      key: 'kind',
+      label: 'Rodzaj',
+      kind: 'select',
+      default: 0,
+      options: [
+        { value: 0, label: 'Crystal' },
+        { value: 1, label: 'Clumps' },
+        { value: 2, label: 'Raw' },
+        { value: 3, label: 'Fine' },
+        { value: 4, label: 'Sand' },
+        { value: 5, label: 'Clouds' },
+        { value: 6, label: 'Cells' },
+        { value: 7, label: 'Streaks' },
+        { value: 8, label: 'Silver' },
+        { value: 9, label: 'Halftone' },
+        { value: 10, label: 'Dither' }
+      ]
+    },
+    num('amount', 'Siła', 0, 100, 1, 30),
+    num('size', 'Rozmiar ziarna', 0, 100, 1, 20),
+    num('softness', 'Miękkość', 0, 100, 1, 0),
+    num('shadows', 'W cieniach', 0, 200, 1, 100),
+    num('highlights', 'W światłach', 0, 200, 1, 100),
+    num('motion', 'Ruch wzoru', 0, 1, 0.01, 0.5)
   ]),
   DreamerGradient: filter('DreamerGradient', 'Dreamer Gradient', [
     { key: 'a', label: 'Gradient A', kind: 'gradient', default: presetValue('Heat') },

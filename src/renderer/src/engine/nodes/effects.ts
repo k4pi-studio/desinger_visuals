@@ -19,6 +19,7 @@ import { findParam, type NodeType } from '@shared/nodes'
 import type { ParamValue } from '@shared/types'
 import { DreamerBlurPass } from '../dreamer/DreamerBlurPass'
 import { GradientMapEffect } from '../dreamer/GradientMapEffect'
+import { GrainEffect, type GrainParams } from '../dreamer/GrainEffect'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
@@ -254,6 +255,31 @@ export function createEffect(type: NodeType): EffectHandle | null {
           p.centerY = get('centerY')
           p.focus = get('focus')
           p.feather = get('feather')
+        }
+      }
+    }
+    case 'DreamerGrain': {
+      const effect = new GrainEffect()
+      const p: GrainParams = {
+        kind: 0,
+        amount: 0,
+        size: 0,
+        softness: 0,
+        shadows: 100,
+        highlights: 100,
+        motion: 0
+      }
+      return {
+        effect,
+        apply(get, dt) {
+          p.kind = get('kind')
+          p.amount = get('amount')
+          p.size = get('size')
+          p.softness = get('softness')
+          p.shadows = get('shadows')
+          p.highlights = get('highlights')
+          p.motion = get('motion')
+          effect.setParams(p, dt)
         }
       }
     }
