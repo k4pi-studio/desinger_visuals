@@ -158,6 +158,21 @@ describe('łańcuch – przypadki brzegowe', () => {
 })
 
 describe('sanitizeGraph – dodatkowe przypadki', () => {
+  it('uszkodzony gradient w projekcie wraca do domyślnego, reszta zostaje', () => {
+    const g = sanitizeGraph({
+      nodes: [
+        {
+          id: 'g',
+          type: 'DreamerGradient',
+          params: { a: 'zzz', b: '0:000000;'.repeat(500), mix: 0.4 }
+        }
+      ],
+      edges: []
+    })
+    const def = defaultParams('DreamerGradient')
+    expect(byId(g, 'g').params).toMatchObject({ a: def.a, b: def.b, mix: 0.4 })
+  })
+
   it('zachowuje bypass i pozycję, pomija duplikaty id', () => {
     const g = sanitizeGraph({
       nodes: [
