@@ -19,6 +19,7 @@ export type NodeType =
   | 'CRTSignal'
   | 'CRTTube'
   | 'CRTFlicker'
+  | 'DreamerBlur'
   | 'DreamerGradient'
   | 'AudioIn'
   | 'LFO'
@@ -184,6 +185,28 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('amount', 'Siła błysku', 0, 1, 0.005, 0),
     num('rate', 'Błyski na sekundę (0,5–20)', 0, 1, 0.005, 0.5),
     num('tone', 'Kolor: czarne → białe', 0, 1, 0.005, 0)
+  ]),
+  DreamerBlur: filter('DreamerBlur', 'Dreamer Blur', [
+    {
+      key: 'kind',
+      label: 'Rodzaj',
+      kind: 'select',
+      default: 0,
+      options: [
+        { value: 0, label: 'Gaussian' },
+        { value: 1, label: 'Motion' },
+        { value: 2, label: 'Spin' },
+        { value: 3, label: 'Zoom' },
+        { value: 4, label: 'Band' },
+        { value: 5, label: 'Ellipse' }
+      ]
+    },
+    num('amount', 'Siła', 0, 100, 1, 40),
+    num('angle', 'Kąt (Motion, Band, Ellipse) °', 0, 360, 1, 0),
+    num('centerX', 'Środek X', 0, 1, 0.005, 0.5),
+    num('centerY', 'Środek Y', 0, 1, 0.005, 0.5),
+    num('focus', 'Ostry obszar (Band, Ellipse)', 0, 1, 0.005, 0.3),
+    num('feather', 'Miękkość przejścia', 0, 1, 0.005, 0.5)
   ]),
   DreamerGradient: filter('DreamerGradient', 'Dreamer Gradient', [
     { key: 'a', label: 'Gradient A', kind: 'gradient', default: presetValue('Heat') },

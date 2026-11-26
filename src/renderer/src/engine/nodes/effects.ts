@@ -17,6 +17,7 @@ import {
 import { Vector2 } from 'three'
 import { findParam, type NodeType } from '@shared/nodes'
 import type { ParamValue } from '@shared/types'
+import { DreamerBlurPass } from '../dreamer/DreamerBlurPass'
 import { GradientMapEffect } from '../dreamer/GradientMapEffect'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
@@ -237,6 +238,22 @@ export function createEffect(type: NodeType): EffectHandle | null {
           knobs.contrast = get('contrast')
           knobs.color = get('color')
           pass.setTube(tubeUniforms(knobs, out))
+        }
+      }
+    }
+    case 'DreamerBlur': {
+      const pass = new DreamerBlurPass()
+      const p = pass.params
+      return {
+        pass,
+        apply(get) {
+          pass.kind = get('kind')
+          p.amount = get('amount')
+          p.angle = get('angle')
+          p.centerX = get('centerX')
+          p.centerY = get('centerY')
+          p.focus = get('focus')
+          p.feather = get('feather')
         }
       }
     }
