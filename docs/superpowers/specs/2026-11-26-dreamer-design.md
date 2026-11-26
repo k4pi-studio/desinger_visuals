@@ -69,7 +69,7 @@ Nody Dreamera: trzy osobne filtry, jak rozbity CRT. Jeden duży node odpadł, bo
 
 ### Dreamer Ziarno (`DreamerGrain`, filtr)
 
-- `kind` (select): 12 rodzajów z `DreamerNoise::ALL` (Crystal, Clumps, Raw, Fine, Sand, Clouds, Cells, Streaks, Silver,
+- `kind` (select): 11 rodzajów z `DreamerNoise::ALL` (Crystal, Clumps, Raw, Fine, Sand, Clouds, Cells, Streaks, Silver,
   Halftone, Dither…), bez Dust.
 - `amount` 0–100, `size` 0–100, `softness` 0–100, `shadows` 0–200, `highlights` 0–200, a do tego nowy parametr `motion`
   0–1: jak często losuje się nowy wzór (0 = stały wzór, 1 = nowy co klatkę). Bez tego ziarno na wideo albo stoi, albo migocze. Ruch wzoru da się też sterować dźwiękiem.
@@ -79,7 +79,7 @@ Nody Dreamera: trzy osobne filtry, jak rozbity CRT. Jeden duży node odpadł, bo
 ### Dreamer Gradient (`DreamerGradient`, filtr z własnym node'em w panelu)
 
 - Nowy rodzaj parametru `gradient`: lista stopów `{ pos: 0..1, color: '#rrggbb', hard: boolean }`, od 2 do 16 stopów.
-  Rozszerzenie typu wartości parametru, `sanitizeParam` (walidacja: liczby skończone, hex, limit długości) i `protocol.ts`.
+  Zapisany jako tekst (`0:0e1428;0.35:3d4d75;1:ecd6a8`, `:h` = twardy stop). `ParamValue` już przyjmuje string, więc protokół się nie zmienia; walidacja w `sanitizeParam` (liczby skończone, hex, do 400 znaków).
 - Dwa gradienty, `a` i `b`, oraz `mix` 0–1, który płynnie przechodzi z A do B. To jest „kolor sterowany dźwiękiem”: kabel
   z Wygładzania do `mix`.
 - Pozostałe parametry: `shift` (Map Shift, -1–1), `contrast` (-1–1), `steps` (0–16, posteryzacja), `reverse` (bool), `opacity` 0–100.
