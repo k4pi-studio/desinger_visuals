@@ -15,7 +15,9 @@ import {
   VignetteEffect
 } from 'postprocessing'
 import { Vector2 } from 'three'
-import type { NodeType } from '@shared/nodes'
+import { findParam, type NodeType } from '@shared/nodes'
+import type { ParamValue } from '@shared/types'
+import { GradientMapEffect } from '../dreamer/GradientMapEffect'
 import { CrtCircuitPass } from '../crt/CrtCircuitPass'
 import { EchoEffect } from '../crt/EchoEffect'
 import { GunsEffect } from '../crt/GunsEffect'
@@ -27,13 +29,15 @@ import { PosterizeTimePass } from './PosterizeTimePass'
 import { FlickerModel, SignalModel, echoUniforms, gunUniforms, tubeUniforms } from '../crt/model'
 
 export type ParamGetter = (key: string) => number
+/** Surowa wartość parametru z node'a (np. tekst gradientu); brak = domyślna. */
+export type RawGetter = (key: string) => ParamValue | undefined
 
 /** Zwykły efekt (`effect`) albo własne przejście (`pass`), np. z buforem poprzedniej klatki. */
 export interface EffectHandle {
   effect?: Effect
   pass?: Pass
   /** `dt` – czas klatki w sekundach, dla efektów zależnych od czasu. */
-  apply(get: ParamGetter, dt: number): void
+  apply(get: ParamGetter, dt: number, raw?: RawGetter): void
 }
 
 const DEG = Math.PI / 180
@@ -233,6 +237,31 @@ export function createEffect(type: NodeType): EffectHandle | null {
           knobs.contrast = get('contrast')
           knobs.color = get('color')
           pass.setTube(tubeUniforms(knobs, out))
+        }
+      }
+    }
+    case 'DreamerGradient': {
+      const effect = new GradientMapEffect()
+      const text = (raw: RawGetter | undefined, key: string): string => {
+        const v = raw?.(key)
+        if (typeof v === 'string') return v
+        const def = findParam('DreamerGradient', key)
+        return def?.kind === 'gradient' ? def.default : ''
+      }
+      return {
+        effect,
+        apply(get, _dt, raw) {
+          effect.a.set(text(raw, 'a'))
+          effect.b.set(text(raw, 'b'))
+          const reverse = raw?.('reverse')
+          effect.setValues(
+            get('mix'),
+            get('shift'),
+            get('contrast'),
+            get('steps'),
+            reverse === true,
+            get('opacity') / 100
+          )
         }
       }
     }

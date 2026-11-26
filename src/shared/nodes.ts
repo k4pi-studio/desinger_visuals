@@ -19,6 +19,7 @@ export type NodeType =
   | 'CRTSignal'
   | 'CRTTube'
   | 'CRTFlicker'
+  | 'DreamerGradient'
   | 'AudioIn'
   | 'LFO'
   | 'Math'
@@ -56,7 +57,14 @@ export interface SelectParamDef extends BaseParam {
   default: number
 }
 
-export type ParamDef = NumberParamDef | BooleanParamDef | VideoParamDef | SelectParamDef
+/** Gradient mapy kolorów jako tekst (format w `gradient.ts`). */
+export interface GradientParamDef extends BaseParam {
+  kind: 'gradient'
+  default: string
+}
+
+export type ParamDef =
+  NumberParamDef | BooleanParamDef | VideoParamDef | SelectParamDef | GradientParamDef
 
 export interface NodeDef {
   type: NodeType
@@ -72,6 +80,8 @@ export interface NodeDef {
   signalOut: string[]
   params: ParamDef[]
 }
+
+import { presetValue } from './gradient'
 
 export const VIDEO_IN = 'input'
 export const VIDEO_OUT = 'video'
@@ -174,6 +184,16 @@ export const NODE_DEFS: Record<NodeType, NodeDef> = {
     num('rate', 'Błyski na sekundę (0,5–20)', 0, 1, 0.005, 0.5),
     num('tone', 'Kolor: czarne → białe', 0, 1, 0.005, 0)
   ]),
+  DreamerGradient: filter('DreamerGradient', 'Dreamer Gradient', [
+    { key: 'a', label: 'Gradient A', kind: 'gradient', default: presetValue('Heat') },
+    { key: 'b', label: 'Gradient B', kind: 'gradient', default: presetValue('Violet') },
+    num('mix', 'Mieszanie A↔B', 0, 1, 0.005, 0),
+    num('shift', 'Przesunięcie mapy', -1, 1, 0.005, 0),
+    num('contrast', 'Kontrast mapy', -1, 1, 0.005, 0),
+    num('steps', 'Schodki', 0, 16, 1, 0),
+    { key: 'reverse', label: 'Odwróć', kind: 'boolean', default: false },
+    num('opacity', 'Krycie', 0, 100, 1, 100)
+  ]),
   AudioIn: {
     type: 'AudioIn',
     label: 'Audio',
@@ -251,8 +271,8 @@ export function findNumberParam(type: NodeType, key: string): NumberParamDef | u
   return p?.kind === 'number' ? p : undefined
 }
 
-export function defaultParams(type: NodeType): Record<string, number | boolean | null> {
-  const out: Record<string, number | boolean | null> = {}
+export function defaultParams(type: NodeType): Record<string, number | boolean | string | null> {
+  const out: Record<string, number | boolean | string | null> = {}
   for (const p of NODE_DEFS[type].params) out[p.key] = p.default
   return out
 }

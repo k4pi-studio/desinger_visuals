@@ -2,6 +2,7 @@
 // Ciągły kabel = obraz, kropkowany = sygnał (audio, LFO, Math);
 // pełny kwadrat = obraz, pusty = sygnał (ramka w kolorze pasma audio).
 
+import { GRADIENT_PRESETS } from '@shared/gradient'
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
 import { NODE_DEFS, VIDEO_IN, VIDEO_OUT } from '@shared/nodes'
 import type { GraphNode } from '@shared/types'
@@ -65,6 +66,8 @@ function format(v: unknown): string {
     return Number.isInteger(v) ? String(v) : v.toFixed(Math.abs(v) < 0.1 ? 4 : 2)
   if (typeof v === 'boolean') return v ? 'tak' : 'nie'
   if (v === null) return 'aktywne'
+  if (typeof v === 'string' && v.includes(':'))
+    return GRADIENT_PRESETS.find((p) => p.value === v)?.name ?? 'własny'
   return String(v).slice(0, 10)
 }
 

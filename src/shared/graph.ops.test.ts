@@ -196,4 +196,11 @@ describe('sanitizeGraph – dodatkowe przypadki', () => {
     expect(sanitizeParam('VideoFile', 'videoId', null)).toBeNull()
     expect(sanitizeParam('Bloom', 'ghost', 1)).toBeUndefined()
   })
+
+  it('sanitizeParam dla gradientu normalizuje poprawny i odrzuca zły', () => {
+    expect(sanitizeParam('DreamerGradient', 'a', '1:FFFFFF;0:000000')).toBe('0:000000;1:ffffff')
+    expect(sanitizeParam('DreamerGradient', 'a', 'zzz')).toBeUndefined()
+    expect(sanitizeParam('DreamerGradient', 'a', 0.5)).toBeUndefined()
+    expect(sanitizeParam('DreamerGradient', 'a', '0:000000;'.repeat(50))).toBeUndefined()
+  })
 })

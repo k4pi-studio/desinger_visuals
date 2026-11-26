@@ -20,13 +20,14 @@ import {
 } from '@shared/types'
 import { AudioInput } from './audio/capture'
 import { compileGraph, SignalBus, type CompiledGraph } from './graph'
-import { createEffect, type EffectHandle } from './nodes/effects'
+import { createEffect, type EffectHandle, type RawGetter } from './nodes/effects'
 import { VideoPool, type VideoSlot } from './video/VideoSource'
 
 interface ActiveEffect {
   id: string
   handle: EffectHandle
   get: (key: string) => number
+  raw: RawGetter
 }
 
 export class Engine {
@@ -156,7 +157,12 @@ export class Engine {
       const pass = handle.pass ?? (handle.effect && new EffectPass(this.camera, handle.effect))
       if (!pass) continue
       composer.addPass(pass)
-      this.effects.push({ id, handle, get: (key) => this.bus.number(id, key) })
+      this.effects.push({
+        id,
+        handle,
+        get: (key) => this.bus.number(id, key),
+        raw: (key) => this.nodes.get(id)?.params[key]
+      })
     }
     composer.setSize(this.width, this.height, false)
     this.composer = composer
@@ -202,7 +208,7 @@ export class Engine {
       }
     }
 
-    for (const e of this.effects) e.handle.apply(e.get, dt)
+    for (const e of this.effects) e.handle.apply(e.get, dt, e.raw)
     this.fitPlane()
     this.composer?.render(dt)
 
